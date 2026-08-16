@@ -33,6 +33,8 @@ export const SELECTORS = {
   logoRow: '[class*=logoRow]',
   /** 侧栏列。 */
   sidebarCol: '[class*=sidebarCol]',
+  /** 侧栏已收起。app 自带的未哈希钩子；收起时品牌区整个不渲染。 */
+  sidebarCollapsed: '[data-sidebar-collapsed=true]',
   /** 输入区外层容器（满宽），新会话页会多一个 composerHero 修饰类。 */
   composerStack: '[class*=composerStack]',
   /** 输入区里那张可见卡片（780px，水平居中）。app 自带的未哈希钩子。 */

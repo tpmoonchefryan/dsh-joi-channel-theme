@@ -50,28 +50,26 @@ export function heroComposer(): Element | null {
  * @returns 实际摆放了则为量测读数，否则 undefined。
  */
 export function placeHero(nodes: HeroNodes, suit: Suit): HeroMetrics | undefined {
-  const headline = heroComposer() === null ? null : document.querySelector(SELECTORS.headline)
-  if (headline === null) {
+  const anchor = headlineAnchor()
+  if (anchor === null) {
     hide(nodes)
     return undefined
   }
-
-  // 标题里的文字 span —— 要排除原生小鲸鱼的热区，它也是 headline 的子 span。
-  const text = headline.querySelector(`span:not(${SELECTORS.fishHitbox})`)
-  if (text === null) {
-    hide(nodes)
-    return undefined
-  }
-  const tr = text.getBoundingClientRect()
+  const { headline, tr } = anchor
 
   for (const el of [nodes.portrait, nodes.whale, nodes.tagline]) el.style.display = 'block'
 
   // ── 立绘：把金瞳锚到「距右缘 168px × 标题文字中线」这一点。
   // eyeY 必须运行时量：hero 区垂直居中，随视口高度浮动，写死就会在别的
   // 视口高度上错位。eyeX 按距右缘定义，窗口变宽也稳。
+  //
+  // 量的是「未滚动时」的标题中线：把当前滚动量加回去。立绘是视口上的场所
+  // 身份，不随内容滚（与鲸鱼娘、标语相反）；不加这一笔，滚动之后任意一次
+  // 重算都会拿滚过的矩形把她一起拖下去。滚动量为 0 时该式与原式等值，
+  // 四象限基线读数因此不变。
   const g = GEOMETRY.portrait
   const eye = g.eyeAnchor[suit]
-  const eyeY = tr.y + tr.height / 2
+  const eyeY = tr.y + tr.height / 2 + scrolledBy()
   const eyeX = window.innerWidth - g.eyeRight
   const w = g.width
   nodes.portrait.src = suit === 'flowers' ? ASSETS.portraitFlowers : ASSETS.portraitLibrary
@@ -81,8 +79,55 @@ export function placeHero(nodes: HeroNodes, suit: Suit): HeroMetrics | undefined
   nodes.portrait.style.webkitMaskImage = g.mask
   nodes.portrait.style.maskImage = g.mask
 
-  // ── 鲸鱼娘：横向对齐「小鲸鱼 + 标题」的合并跨度，而不是只对齐文字——
-  // 预览版徽章是上标小药丸，不计入视觉重心。
+  const whale = placeWhale(nodes, headline, tr)
+  nodes.tagline.textContent = TAGLINE[suit]
+  placeTagline(nodes)
+
+  return {
+    eye: { x: Math.round(eyeX), y: Math.round(eyeY) },
+    portraitBottom: Math.round(eyeY - w * ASPECT * eye[1] + w * ASPECT),
+    clawOverlap: whale.clawOverlap,
+    whaleCenterOffset: whale.centerOffset,
+    viewport: [window.innerWidth, window.innerHeight],
+  }
+}
+
+/**
+ * 当前内容已经滚过的距离。
+ *
+ * hero 滚的是 app 的会话滚动体而不是窗口，所以两处都要算上：某些窗口尺寸下
+ * 文档本身也会出现滚动条。
+ * @returns 纵向滚动量（px）。
+ */
+function scrolledBy(): number {
+  const thread = document.querySelector(SELECTORS.thread)
+  return (thread?.scrollTop ?? 0) + window.scrollY
+}
+
+/**
+ * 取标题行与其文字 span 的当前位置。不在新会话页、或标题还没渲染出来时为 null。
+ * @returns 标题元素与文字 span 的视口矩形。
+ */
+function headlineAnchor(): { headline: Element, tr: DOMRect } | null {
+  const headline = heroComposer() === null ? null : document.querySelector(SELECTORS.headline)
+  if (headline === null) return null
+  // 标题里的文字 span —— 要排除原生小鲸鱼的热区，它也是 headline 的子 span。
+  const text = headline.querySelector(`span:not(${SELECTORS.fishHitbox})`)
+  if (text === null) return null
+  return { headline, tr: text.getBoundingClientRect() }
+}
+
+/**
+ * 摆放鲸鱼娘：横向对齐「小鲸鱼 + 标题」的合并跨度，而不是只对齐文字——
+ * 预览版徽章是上标小药丸，不计入视觉重心。
+ * @param nodes - hero 节点。
+ * @param headline - 标题行。
+ * @param tr - 标题文字 span 的视口矩形。
+ * @returns 压入量与居中偏差，供量测读数使用。
+ */
+function placeWhale(nodes: HeroNodes, headline: Element, tr: DOMRect): {
+  clawOverlap: number, centerOffset: number,
+} {
   const wm = GEOMETRY.whaleMusume
   const fish = headline.querySelector(SELECTORS.fishHitbox)
   const fr = fish?.getBoundingClientRect()
@@ -93,30 +138,51 @@ export function placeHero(nodes: HeroNodes, suit: Suit): HeroMetrics | undefined
   // 爪尖落点 = 字顶 + 宽 × (clawLine − anchor)。anchor 小于 clawLine 才产生压入；
   // 反过来会把她抬到标题上方去，读成悬浮。
   nodes.whale.style.top = `${Math.round(tr.top - wm.width * wm.anchor)}px`
+  return {
+    clawOverlap: Math.round(wm.width * (wm.clawLine - wm.anchor)),
+    centerOffset: Math.round(cx - (spanLeft + tr.right) / 2),
+  }
+}
 
-  // ── 衣装标语：输入卡片上方一行小字。
-  //
-  // 锚点必须是卡片而不是 composerStack：hero 版的 stack 把标题也包在里面，
-  // 贴它的上沿会把标语甩到标题上方去、正落在鲸鱼娘身下。
+/**
+ * 摆放衣装标语：输入卡片上方一行小字。
+ *
+ * 锚点必须是卡片而不是 composerStack：hero 版的 stack 把标题也包在里面，
+ * 贴它的上沿会把标语甩到标题上方去、正落在鲸鱼娘身下。
+ * @param nodes - hero 节点。
+ */
+function placeTagline(nodes: HeroNodes): void {
   const card = heroComposer()?.querySelector(SELECTORS.composerCard)
   const cr = card?.getBoundingClientRect()
-  nodes.tagline.textContent = TAGLINE[suit]
-  if (cr !== undefined) {
-    nodes.tagline.style.left = `${Math.round(cr.left)}px`
-    nodes.tagline.style.width = `${Math.round(cr.width)}px`
-    nodes.tagline.style.top = `${Math.round(cr.top - 24)}px`
-    nodes.tagline.style.display = 'block'
-  } else {
+  if (cr === undefined) {
     nodes.tagline.style.display = 'none'
+    return
   }
+  nodes.tagline.style.left = `${Math.round(cr.left)}px`
+  nodes.tagline.style.width = `${Math.round(cr.width)}px`
+  nodes.tagline.style.top = `${Math.round(cr.top - 24)}px`
+  nodes.tagline.style.display = 'block'
+}
 
-  return {
-    eye: { x: Math.round(eyeX), y: Math.round(eyeY) },
-    portraitBottom: Math.round(eyeY - w * ASPECT * eye[1] + w * ASPECT),
-    clawOverlap: Math.round(wm.width * (wm.clawLine - wm.anchor)),
-    whaleCenterOffset: Math.round(cx - (spanLeft + tr.right) / 2),
-    viewport: [window.innerWidth, window.innerHeight],
-  }
+/**
+ * 滚动时重新贴锚。
+ *
+ * 三件套都是 position:fixed，坐标取自 getBoundingClientRect——只在算的那一刻
+ * 成立。而滚动既不产生 DOM 变更也不触发 resize，两条既有触发路都收不到，
+ * 于是内容滚走了、浮层还钉在原处。这条轻量路专门补这个缺口。
+ *
+ * 只重贴鲸鱼娘（跟标题）与标语（跟输入卡片）。**立绘不动**：它是视口上的场所
+ * 身份，不随内容滚，这是设计意图而不是遗漏。也正因为它不参与，这里不能直接
+ * 复用 placeHero——那会把立绘一起挪走。
+ * @param nodes - hero 节点。
+ */
+export function trackHero(nodes: HeroNodes): void {
+  // 没摆出来就没什么可跟的（对话页、或还没渲染完）。
+  if (nodes.whale.style.display === 'none') return
+  const anchor = headlineAnchor()
+  if (anchor === null) return
+  placeWhale(nodes, anchor.headline, anchor.tr)
+  placeTagline(nodes)
 }
 
 /** 一次 hero 布局的量测读数，供回归断言与调试读取。 */

@@ -11,7 +11,10 @@
  */
 import { HALO_CLASS, ID, SELECTORS, TEX_CLASS, stylesheet } from './css.ts'
 import { OwnedNodes, framed } from './dom.ts'
-import { brandSurgery, heroComposer, placeHero, undoBrandSurgery, type HeroMetrics, type HeroNodes } from './hero.ts'
+import {
+  brandSurgery, heroComposer, placeHero, trackHero, undoBrandSurgery,
+  type HeroMetrics, type HeroNodes,
+} from './hero.ts'
 import { applyHalo, placeChat, type ChatMetrics, type ChatNodes, type ChatState } from './chat.ts'
 import { paintMeter, unpaintMeter } from './meter.ts'
 import {
@@ -72,9 +75,13 @@ function selectorMisses(): string[] {
   const need = (name: keyof typeof SELECTORS): void => {
     if (document.querySelector(SELECTORS[name]) === null) miss.push(name)
   }
-  for (const name of ['brand', 'logoRow', 'sidebarCol', 'composerStack', 'composerSend'] as const) {
+  for (const name of ['logoRow', 'sidebarCol', 'composerStack', 'composerSend'] as const) {
     need(name)
   }
+  // 品牌区只在侧栏展开时存在——收起时 app 压根不渲染它，无条件要求它会把
+  // 「用户收起了侧栏」误报成改版失配。判据用 app 自己标的 data 位，不要用
+  // 容器宽度：窄视口自动收起与手动收起是两种状态，后者的 logoRow 仍是满宽。
+  if (document.querySelector(SELECTORS.sidebarCollapsed) === null) need('brand')
   if (heroComposer() !== null) {
     need('headline')
     need('heroStack')
@@ -90,6 +97,8 @@ export class Surfaces {
   private readonly hero: HeroNodes
   private readonly chat: ChatNodes
   private readonly loop: { schedule: () => void, dispose: () => void }
+  /** 滚动专用的轻量重贴，见构造函数里的说明。 */
+  private readonly track: { schedule: () => void, dispose: () => void }
   private readonly observer: MutationObserver
   private suit: Suit
   private state: ChatState = { joi: 'info', zhouxin: 'info' }
@@ -147,6 +156,9 @@ export class Surfaces {
     }
 
     this.loop = framed(() => { this.reconcile() })
+    // 滚动单开一条轻量路：只把鲸鱼娘与标语重新贴回各自的锚，不走整轮 reconcile。
+    // 不能复用 this.loop —— reconcile 会连立绘一起重摆，而立绘按设计不随内容滚。
+    this.track = framed(() => { if (!this.native) trackHero(this.hero) })
 
     // React 每次重渲染都可能换掉标题/卡片/字标节点，presenter 切明暗时也会
     // 动 body 属性。两者都要重算，所以订阅整棵 body 的子树变化。
@@ -156,6 +168,9 @@ export class Surfaces {
     })
     window.addEventListener('resize', this.loop.schedule)
     portrait.addEventListener('load', this.loop.schedule)
+    // 捕获相：scroll 不冒泡，挂在 document 上收不到内层滚动容器的事件，
+    // 而 hero 正是滚在 [data-conversation-scroll] 里而不是窗口上。
+    document.addEventListener('scroll', this.track.schedule, true)
     this.loop.schedule()
   }
 
@@ -194,7 +209,9 @@ export class Surfaces {
   dispose(): void {
     this.observer.disconnect()
     window.removeEventListener('resize', this.loop.schedule)
+    document.removeEventListener('scroll', this.track.schedule, true)
     this.loop.dispose()
+    this.track.dispose()
     this.quiesce()
     this.nodes.dispose()
   }
