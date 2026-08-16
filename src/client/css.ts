@@ -137,6 +137,17 @@ ${SELECTORS.brand} svg { overflow: visible !important; transform: translateX(-27
 
 /* ⑤  body[data-ds-dark-theme] 归 ui-layout presenter 所有，本插件永不写它。
       明暗全程由 app 的外观设置驱动，这里只是把这条约定记在代码里。 */
+
+/* ⑥  关掉橡皮筋回弹。
+      回弹由合成器把「可滚动内容」整层平移，而 position:fixed 的浮层不在那一层里：
+      内容弹下去 30px，鲸鱼娘与标语原地不动，当场与各自的锚错开。要命的是
+      getBoundingClientRect 读不到这个位移——JS 侧无论接事件还是逐帧重贴都看不见，
+      所以这个缺陷在脚本层无解，只能让它别弹。
+      macOS 触控板两指拖动时最明显：hero 页本来就没有可滚内容，回弹照旧发生，
+      而 html/body 的 overflow-y 是 visible，根框架因此始终可弹。 */
+html, body,
+${SELECTORS.thread},
+${SELECTORS.trajectory} { overscroll-behavior-y: none; }
 `
 }
 
