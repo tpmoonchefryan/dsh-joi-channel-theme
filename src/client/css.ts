@@ -138,13 +138,12 @@ ${SELECTORS.brand} svg { overflow: visible !important; transform: translateX(-27
 /* ⑤  body[data-ds-dark-theme] 归 ui-layout presenter 所有，本插件永不写它。
       明暗全程由 app 的外观设置驱动，这里只是把这条约定记在代码里。 */
 
-/* ⑥  文档层的橡皮筋回弹是**支持**的：内容锚定的浮层都住在文档滚动层（见
-      overlayRules），合成器平移时带着它们一起走，立绘按其视口身份留在原地。
-      但内层滚动面的回弹要关掉：它平移的是滚动面自己的内容层，浮层挂在 body
-      上、进不去那一层（往 React 管的子树里塞节点才进得去，不值得）。顺带
-      也挡掉滚动链——滚到底后把整页拖走，对一个应用面板本就不该发生。 */
-${SELECTORS.thread},
-${SELECTORS.trajectory} { overscroll-behavior-y: none; }
+/* ⑥  滚动物理一律不碰，保持 app 原生。
+      橡皮筋回弹靠 overlayRules 的分层安置来支持（内容锚定的浮层住文档滚动层，
+      合成器平移时带着走），不靠禁令。这里曾给会话滚动面设过
+      overscroll-behavior:none，结果把回弹整个弄没了：滚动容器设了 none，
+      哪怕毫无可滚内容，落在它上面的手势也终结在它这里、不再传给文档——
+      而它盖着侧栏以右的全部区域，文档层因此永远收不到手势。 */
 `
 }
 
