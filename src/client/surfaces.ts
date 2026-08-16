@@ -97,8 +97,17 @@ export class Surfaces {
   private readonly hero: HeroNodes
   private readonly chat: ChatNodes
   private readonly loop: { schedule: () => void, dispose: () => void }
-  /** 滚动专用的轻量重贴，见构造函数里的说明。 */
-  private readonly track: { schedule: () => void, dispose: () => void }
+  /**
+   * 逐帧贴锚的 rAF 句柄；undefined 表示没在跑。
+   *
+   * 为什么是逐帧而不是监听事件：鲸鱼娘与标语是 position:fixed，坐标只在算的
+   * 那一刻成立，而让它们与锚点错位的原因有一大把——容器滚动、窗口滚动、
+   * 橡皮筋回弹、CSS 过渡、transform、相邻元素的布局变化。逐个去接事件源
+   * 必定漏（先接了 MutationObserver + resize 漏掉滚动，补了 scroll 又漏掉
+   * 不产生滚动事件的那些）。锚定本就是一个视觉关系，逐帧维持它才是对的量级。
+   * 只在新会话页跑，且值没变就不写样式。
+   */
+  private follow: number | undefined
   private readonly observer: MutationObserver
   private suit: Suit
   private state: ChatState = { joi: 'info', zhouxin: 'info' }
@@ -156,9 +165,6 @@ export class Surfaces {
     }
 
     this.loop = framed(() => { this.reconcile() })
-    // 滚动单开一条轻量路：只把鲸鱼娘与标语重新贴回各自的锚，不走整轮 reconcile。
-    // 不能复用 this.loop —— reconcile 会连立绘一起重摆，而立绘按设计不随内容滚。
-    this.track = framed(() => { if (!this.native) trackHero(this.hero) })
 
     // React 每次重渲染都可能换掉标题/卡片/字标节点，presenter 切明暗时也会
     // 动 body 属性。两者都要重算，所以订阅整棵 body 的子树变化。
@@ -168,9 +174,6 @@ export class Surfaces {
     })
     window.addEventListener('resize', this.loop.schedule)
     portrait.addEventListener('load', this.loop.schedule)
-    // 捕获相：scroll 不冒泡，挂在 document 上收不到内层滚动容器的事件，
-    // 而 hero 正是滚在 [data-conversation-scroll] 里而不是窗口上。
-    document.addEventListener('scroll', this.track.schedule, true)
     this.loop.schedule()
   }
 
@@ -209,9 +212,8 @@ export class Surfaces {
   dispose(): void {
     this.observer.disconnect()
     window.removeEventListener('resize', this.loop.schedule)
-    document.removeEventListener('scroll', this.track.schedule, true)
     this.loop.dispose()
-    this.track.dispose()
+    this.stopFollow()
     this.quiesce()
     this.nodes.dispose()
   }
@@ -223,6 +225,8 @@ export class Surfaces {
    * quiesce 不会——切回衣装时靠的正是那个监听把布局重新算起来。
    */
   private quiesce(): void {
+    // 原生态下浮层全隐，逐帧贴锚没有意义，先停掉。
+    this.stopFollow()
     // 关键一步：停掉整张样式表。
     // 只撤装饰是不够的——结构类规则（品牌区 98px 左内边距、logoRow 撑到 74px、
     // 侧栏竖条、药丸 tab、composer 层序）还在生效，原生态就成了"没有装饰的错位界面"。
@@ -239,6 +243,23 @@ export class Surfaces {
     unpaintOnboarding()
     undoBrandSurgery()
     this.textured = 0
+  }
+
+  /** 开始逐帧贴锚。已在跑则什么都不做。 */
+  private startFollow(): void {
+    if (this.follow !== undefined) return
+    const step = (): void => {
+      this.follow = requestAnimationFrame(step)
+      trackHero(this.hero)
+    }
+    this.follow = requestAnimationFrame(step)
+  }
+
+  /** 停止逐帧贴锚。离开新会话页、进原生态、拆装饰层时都要停。 */
+  private stopFollow(): void {
+    if (this.follow === undefined) return
+    cancelAnimationFrame(this.follow)
+    this.follow = undefined
   }
 
   /** 重算一次。由 framed 合并到下一帧调用。 */
@@ -283,6 +304,8 @@ export class Surfaces {
     if (!this.manual) this.state = this.tracker.read()
     this.textured = paintTexture()
     const hero = placeHero(this.hero, this.suit)
+    if (hero === undefined) this.stopFollow()
+    else this.startFollow()
     const chat = placeChat(this.chat, this.suit, this.state)
     applyHalo(this.chat)
     const contextPercent = paintMeter()

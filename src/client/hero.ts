@@ -133,11 +133,11 @@ function placeWhale(nodes: HeroNodes, headline: Element, tr: DOMRect): {
   const fr = fish?.getBoundingClientRect()
   const spanLeft = fr !== undefined && fr.width > 0 ? Math.min(fr.left, tr.left) : tr.left
   const cx = (spanLeft + tr.right) / 2
-  nodes.whale.style.width = `${wm.width}px`
-  nodes.whale.style.left = `${Math.round(cx - wm.width / 2)}px`
+  set(nodes.whale, 'width', `${wm.width}px`)
+  set(nodes.whale, 'left', `${Math.round(cx - wm.width / 2)}px`)
   // 爪尖落点 = 字顶 + 宽 × (clawLine − anchor)。anchor 小于 clawLine 才产生压入；
   // 反过来会把她抬到标题上方去，读成悬浮。
-  nodes.whale.style.top = `${Math.round(tr.top - wm.width * wm.anchor)}px`
+  set(nodes.whale, 'top', `${Math.round(tr.top - wm.width * wm.anchor)}px`)
   return {
     clawOverlap: Math.round(wm.width * (wm.clawLine - wm.anchor)),
     centerOffset: Math.round(cx - (spanLeft + tr.right) / 2),
@@ -158,10 +158,23 @@ function placeTagline(nodes: HeroNodes): void {
     nodes.tagline.style.display = 'none'
     return
   }
-  nodes.tagline.style.left = `${Math.round(cr.left)}px`
-  nodes.tagline.style.width = `${Math.round(cr.width)}px`
-  nodes.tagline.style.top = `${Math.round(cr.top - 24)}px`
-  nodes.tagline.style.display = 'block'
+  set(nodes.tagline, 'left', `${Math.round(cr.left)}px`)
+  set(nodes.tagline, 'width', `${Math.round(cr.width)}px`)
+  set(nodes.tagline, 'top', `${Math.round(cr.top - 24)}px`)
+  set(nodes.tagline, 'display', 'block')
+}
+
+/**
+ * 写样式，值没变就不写。
+ *
+ * 贴锚是逐帧跑的，无脑赋值等于每帧都让这几个节点的样式失效一次；
+ * 而绝大多数帧里画面根本没动。
+ * @param el - 目标节点。
+ * @param prop - 样式属性名。
+ * @param value - 目标值。
+ */
+function set(el: HTMLElement, prop: 'width' | 'left' | 'top' | 'display', value: string): void {
+  if (el.style[prop] !== value) el.style[prop] = value
 }
 
 /**
