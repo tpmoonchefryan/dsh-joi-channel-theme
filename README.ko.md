@@ -126,16 +126,67 @@ Joi가 한 장의 다이컷 스티커에 나란히: 엔진과 그녀, 어느 쪽
 
 ## 설치
 
-DeepSeek Harness(web, `0.1.0-rc.5+`)가 필요합니다. 명령 한 줄:
+### 전제 두 가지
+
+| 전제 | 이유 | 확인 |
+| --- | --- | --- |
+| **Node.js** `^22.19` 또는 `>=24` | DeepSeek Harness의 실행 기반 | `node -v` |
+| **pnpm** | `dsh plugin`은 사실상 pnpm 포워더. 없으면 `pnpm not found on PATH` | `pnpm -v` |
+
+pnpm이 없다면 먼저 설치하세요(둘 중 하나):
 
 ```bash
-dsh plugin --profile web add dsh-joi-channel-theme
+npm install -g pnpm
 ```
 
-`dsh web`을 재시작하고 브라우저를 새로고침하면 그녀가 있습니다. 제거도 한 줄:
+```bash
+corepack enable pnpm
+```
+
+### 경우 A: 평소 `npx`로 harness를 실행한다면
+
+`npx @deepseek-ai/dsh web`으로 띄우고 있다면 `dsh`는 **PATH에 없습니다** —
+`dsh plugin ...`만 치면 `command not found`가 납니다. 같은 `npx`를 붙이세요:
 
 ```bash
-dsh plugin --profile web remove dsh-joi-channel-theme
+npx @deepseek-ai/dsh plugin --profile web add dsh-joi-channel-theme
+```
+
+그다음 평소처럼 실행:
+
+```bash
+npx @deepseek-ai/dsh web
+```
+
+> [!IMPORTANT]
+> **프로필 이름은 반드시 `web`이어야 합니다.** 템플릿이 딸린 이름은 `web`과
+> `headless` 둘뿐입니다. 다른 이름을 쓰면 웹 UI가 없는 빈 프로필이 만들어져
+> 화면이 뜨지 않습니다.
+
+### 경우 B: 매번 길게 치기 싫다면
+
+harness를 전역 설치하면 `dsh`를 바로 쓸 수 있습니다:
+
+```bash
+npm install -g @deepseek-ai/dsh
+```
+
+```bash
+dsh plugin --profile web add dsh-joi-channel-theme && dsh web
+```
+
+### 그다음
+
+터미널에 찍힌 주소(기본 `http://127.0.0.1:3080`)를 브라우저로 열고 한 번
+새로고침하면 그녀가 있습니다.
+
+**harness가 이미 실행 중이라면** 플러그인은 핫로드되지 않습니다 — 플러그인 구성
+변경은 재시작 시 반영됩니다. `Ctrl+C`로 멈추고 설치한 뒤 다시 실행하세요.
+
+### 제거
+
+```bash
+npx @deepseek-ai/dsh plugin --profile web remove dsh-joi-channel-theme
 ```
 
 > [!NOTE]
@@ -145,13 +196,23 @@ dsh plugin --profile web remove dsh-joi-channel-theme
 > 이 한 단계만은 피할 수 없습니다.
 
 > [!TIP]
-> 플러그인 구성 변경은 재시작 시 반영됩니다. 제거 후 UI는 토큰, 파비콘, 워드마크,
-> 구문 색상까지 항목 단위로 원상복구됩니다 — 잔여물 0, 실기에서 하나하나 확인했습니다.
+> 제거 후 UI는 토큰, 파비콘, 워드마크, 구문 색상까지 항목 단위로 원상복구됩니다 —
+> 잔여물 0, 실기에서 하나하나 확인했습니다.
 
 <details>
-<summary><strong>다른 설치 방법</strong></summary>
+<summary><strong>문제가 생기면</strong></summary>
 
-로컬 체크아웃에서(개발용):
+**`dsh: command not found`** — harness가 전역 설치되어 있지 않습니다.
+`npx @deepseek-ai/dsh plugin ...`(경우 A)을 쓰거나 먼저
+`npm install -g @deepseek-ai/dsh`(경우 B)를 하세요.
+
+**`dsh: pnpm not found on PATH`** — `dsh plugin`은 프로필의 의존성을 관리하는 데
+pnpm이 필요합니다. `npm install -g pnpm` 또는 `corepack enable pnpm`을 실행하세요.
+
+**설치했는데 그대로예요** — 플러그인 구성 변경은 재시작 시 반영됩니다. harness를
+멈췄다 다시 실행하고, 브라우저를 강력 새로고침(`Cmd/Ctrl+Shift+R`)하세요.
+
+**로컬 체크아웃에서(개발용)**
 
 ```bash
 dsh plugin --profile web add /path/to/dsh-joi-channel-theme

@@ -116,16 +116,65 @@ die-cut 贴纸里：引擎和她，一个都不能少。合照随衣装一起换
 
 ## 安装
 
-需要 DeepSeek Harness（web，`0.1.0-rc.5+`）。一条命令：
+### 先确认两件事
+
+| 前提 | 为什么 | 检查 |
+| --- | --- | --- |
+| **Node.js** `^22.19` 或 `>=24` | DeepSeek Harness 的运行底座 | `node -v` |
+| **pnpm** | `dsh plugin` 本质是 pnpm 的转发器，缺了会报 `pnpm not found on PATH` | `pnpm -v` |
+
+没有 pnpm 就先装一个（任选其一）：
 
 ```bash
-dsh plugin --profile web add dsh-joi-channel-theme
+npm install -g pnpm
 ```
 
-重启 `dsh web`，刷新浏览器，她就在了。卸载同样一条：
+```bash
+corepack enable pnpm
+```
+
+### 情况 A：你平时用 `npx` 跑 harness
+
+如果你习惯直接 `npx @deepseek-ai/dsh web`，那么 `dsh` 这个命令**并不在 PATH 上**
+——单独敲 `dsh plugin ...` 会报 `command not found`。用同样的 `npx` 前缀即可：
 
 ```bash
-dsh plugin --profile web remove dsh-joi-channel-theme
+npx @deepseek-ai/dsh plugin --profile web add dsh-joi-channel-theme
+```
+
+装完再照常启动：
+
+```bash
+npx @deepseek-ai/dsh web
+```
+
+> [!IMPORTANT]
+> **profile 名必须是 `web`。** 只有 `web` 和 `headless` 两个名字带出厂模板；
+> 换成别的名字只会得到一个没有网页界面的空 profile，页面起不来。
+
+### 情况 B：你想少打点字
+
+把 harness 装成全局命令，之后 `dsh` 直接可用：
+
+```bash
+npm install -g @deepseek-ai/dsh
+```
+
+```bash
+dsh plugin --profile web add dsh-joi-channel-theme && dsh web
+```
+
+### 然后
+
+浏览器打开终端里打印的地址（默认 `http://127.0.0.1:3080`），刷新一次，她就在了。
+
+**如果 harness 正在运行**，插件不会热加载——插件集变更只在重启时生效。
+按 `Ctrl+C` 停掉，装好插件，再重新启动。
+
+### 卸载
+
+```bash
+npx @deepseek-ai/dsh plugin --profile web remove dsh-joi-channel-theme
 ```
 
 > [!NOTE]
@@ -134,13 +183,26 @@ dsh plugin --profile web remove dsh-joi-channel-theme
 > 所以这一步绕不开。
 
 > [!TIP]
-> 插件集变更只在重启时生效。卸载后界面会逐项回到原生——token、图标、字标、
-> 代码高亮，零残留，这一点经过实机逐项核对。
+> 卸载后界面会逐项回到原生——token、图标、字标、代码高亮，零残留，
+> 这一点经过实机逐项核对。
 
 <details>
-<summary><strong>其它安装方式</strong></summary>
+<summary><strong>常见问题</strong></summary>
 
-从本地检出安装（开发用）：
+**`dsh: command not found`** — 你没有全局安装 harness。用 `npx @deepseek-ai/dsh plugin ...`
+（情况 A），或者先 `npm install -g @deepseek-ai/dsh`（情况 B）。
+
+**`dsh: pnpm not found on PATH`** — `dsh plugin` 需要 pnpm 来管理 profile 的依赖。
+先 `npm install -g pnpm` 或 `corepack enable pnpm`。
+
+**装完了但界面没变** — 插件集变更只在重启时生效。停掉 harness 再启动，然后硬刷浏览器
+（`Cmd/Ctrl+Shift+R`）。
+
+**国内网络下 `npx` 拉不动** — 本包已发布到官方 npm；若你的默认源是镜像，
+镜像通常几分钟内同步。急用可临时指定官方源：
+`npx --registry=https://registry.npmjs.org/ @deepseek-ai/dsh plugin --profile web add dsh-joi-channel-theme`
+
+**从本地检出安装（开发用）**
 
 ```bash
 dsh plugin --profile web add /path/to/dsh-joi-channel-theme

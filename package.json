@@ -54,8 +54,9 @@
   "scripts": {
     "gen": "node scripts/gen-baseline.mjs && node scripts/gen-assets.mjs",
     "build": "npm run gen && tsdown",
-    "verify": "node scripts/verify-4q.mjs",
-    "prepublishOnly": "npm run build && npm run verify"
+    "verify": "node scripts/verify-4q.mjs capture/*.json",
+    "prepublishOnly": "npm run build && npm run verify",
+    "verify:static": "node scripts/verify-4q.mjs"
   },
   "dependencies": {
     "@deepseek-ai/dsh-settings": "0.1.0-rc.6",

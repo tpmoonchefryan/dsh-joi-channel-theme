@@ -128,16 +128,67 @@ gains a ground-colored outline — readability always outranks cuteness.
 
 ## Install
 
-Requires DeepSeek Harness (web, `0.1.0-rc.5+`). One command:
+### Two prerequisites
+
+| Requirement | Why | Check |
+| --- | --- | --- |
+| **Node.js** `^22.19` or `>=24` | What DeepSeek Harness runs on | `node -v` |
+| **pnpm** | `dsh plugin` is a pnpm forwarder; without it you get `pnpm not found on PATH` | `pnpm -v` |
+
+If pnpm is missing, install it (either works):
 
 ```bash
-dsh plugin --profile web add dsh-joi-channel-theme
+npm install -g pnpm
 ```
 
-Restart `dsh web`, refresh the browser, and she is there. Uninstalling is one too:
+```bash
+corepack enable pnpm
+```
+
+### Case A: you run harness through `npx`
+
+If your habit is `npx @deepseek-ai/dsh web`, then `dsh` is **not on your PATH** —
+typing `dsh plugin ...` on its own gives `command not found`. Use the same `npx`
+prefix:
 
 ```bash
-dsh plugin --profile web remove dsh-joi-channel-theme
+npx @deepseek-ai/dsh plugin --profile web add dsh-joi-channel-theme
+```
+
+Then start as usual:
+
+```bash
+npx @deepseek-ai/dsh web
+```
+
+> [!IMPORTANT]
+> **The profile name must be `web`.** Only `web` and `headless` ship a template;
+> any other name yields an empty profile with no web UI, and nothing will load.
+
+### Case B: you would rather type less
+
+Install harness globally and `dsh` becomes available directly:
+
+```bash
+npm install -g @deepseek-ai/dsh
+```
+
+```bash
+dsh plugin --profile web add dsh-joi-channel-theme && dsh web
+```
+
+### Then
+
+Open the address printed in the terminal (`http://127.0.0.1:3080` by default),
+refresh once, and she is there.
+
+**If harness is already running**, plugins do not hot-load — plugin-set changes
+take effect on restart. Press `Ctrl+C`, install, and start it again.
+
+### Uninstall
+
+```bash
+npx @deepseek-ai/dsh plugin --profile web remove dsh-joi-channel-theme
 ```
 
 > [!NOTE]
@@ -147,14 +198,24 @@ dsh plugin --profile web remove dsh-joi-channel-theme
 > graphical plugin installer, so this one step is unavoidable.
 
 > [!TIP]
-> Plugin-set changes take effect on restart. After removal the UI returns to
-> stock item by item — tokens, favicon, wordmark, syntax colors, zero residue —
-> verified on a live instance.
+> After removal the UI returns to stock item by item — tokens, favicon, wordmark,
+> syntax colors, zero residue — verified on a live instance.
 
 <details>
-<summary><strong>Other installation paths</strong></summary>
+<summary><strong>Troubleshooting</strong></summary>
 
-From a local checkout (for development):
+**`dsh: command not found`** — harness is not installed globally. Use
+`npx @deepseek-ai/dsh plugin ...` (case A), or `npm install -g @deepseek-ai/dsh`
+first (case B).
+
+**`dsh: pnpm not found on PATH`** — `dsh plugin` needs pnpm to manage the
+profile's dependencies. Run `npm install -g pnpm` or `corepack enable pnpm`.
+
+**Installed but nothing changed** — plugin-set changes take effect on restart.
+Stop harness, start it again, then hard-refresh the browser
+(`Cmd/Ctrl+Shift+R`).
+
+**Installing from a local checkout (for development)**
 
 ```bash
 dsh plugin --profile web add /path/to/dsh-joi-channel-theme
