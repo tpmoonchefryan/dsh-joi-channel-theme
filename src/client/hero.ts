@@ -133,11 +133,13 @@ function placeWhale(nodes: HeroNodes, headline: Element, tr: DOMRect): {
   const fr = fish?.getBoundingClientRect()
   const spanLeft = fr !== undefined && fr.width > 0 ? Math.min(fr.left, tr.left) : tr.left
   const cx = (spanLeft + tr.right) / 2
+  // 节点是 absolute（文档坐标），rect 是视口坐标：写入时补上文档滚动量。
+  // 这个 app 是全屏应用壳，文档几乎永远滚在 0，所以数值上通常等值。
   set(nodes.whale, 'width', `${wm.width}px`)
-  set(nodes.whale, 'left', `${Math.round(cx - wm.width / 2)}px`)
+  set(nodes.whale, 'left', `${Math.round(cx - wm.width / 2 + window.scrollX)}px`)
   // 爪尖落点 = 字顶 + 宽 × (clawLine − anchor)。anchor 小于 clawLine 才产生压入；
   // 反过来会把她抬到标题上方去，读成悬浮。
-  set(nodes.whale, 'top', `${Math.round(tr.top - wm.width * wm.anchor)}px`)
+  set(nodes.whale, 'top', `${Math.round(tr.top - wm.width * wm.anchor + window.scrollY)}px`)
   return {
     clawOverlap: Math.round(wm.width * (wm.clawLine - wm.anchor)),
     centerOffset: Math.round(cx - (spanLeft + tr.right) / 2),
@@ -158,9 +160,9 @@ function placeTagline(nodes: HeroNodes): void {
     nodes.tagline.style.display = 'none'
     return
   }
-  set(nodes.tagline, 'left', `${Math.round(cr.left)}px`)
+  set(nodes.tagline, 'left', `${Math.round(cr.left + window.scrollX)}px`)
   set(nodes.tagline, 'width', `${Math.round(cr.width)}px`)
-  set(nodes.tagline, 'top', `${Math.round(cr.top - 24)}px`)
+  set(nodes.tagline, 'top', `${Math.round(cr.top - 24 + window.scrollY)}px`)
   set(nodes.tagline, 'display', 'block')
 }
 
@@ -180,9 +182,9 @@ function set(el: HTMLElement, prop: 'width' | 'left' | 'top' | 'display', value:
 /**
  * 滚动时重新贴锚。
  *
- * 三件套都是 position:fixed，坐标取自 getBoundingClientRect——只在算的那一刻
- * 成立。而滚动既不产生 DOM 变更也不触发 resize，两条既有触发路都收不到，
- * 于是内容滚走了、浮层还钉在原处。这条轻量路专门补这个缺口。
+ * 浮层坐标取自 getBoundingClientRect——只在算的那一刻成立。锚点在**内层滚动面**
+ * 里移动时（文档层的滚动与回弹由 absolute 定位天然跟随，不经这里），既不产生
+ * DOM 变更也不触发 resize，既有触发路都收不到。这条逐帧路专门补这个缺口。
  *
  * 只重贴鲸鱼娘（跟标题）与标语（跟输入卡片）。**立绘不动**：它是视口上的场所
  * 身份，不随内容滚，这是设计意图而不是遗漏。也正因为它不参与，这里不能直接

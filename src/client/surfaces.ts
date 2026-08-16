@@ -100,12 +100,13 @@ export class Surfaces {
   /**
    * 逐帧贴锚的 rAF 句柄；undefined 表示没在跑。
    *
-   * 为什么是逐帧而不是监听事件：鲸鱼娘与标语是 position:fixed，坐标只在算的
-   * 那一刻成立，而让它们与锚点错位的原因有一大把——容器滚动、窗口滚动、
-   * 橡皮筋回弹、CSS 过渡、transform、相邻元素的布局变化。逐个去接事件源
-   * 必定漏（先接了 MutationObserver + resize 漏掉滚动，补了 scroll 又漏掉
-   * 不产生滚动事件的那些）。锚定本就是一个视觉关系，逐帧维持它才是对的量级。
-   * 只在新会话页跑，且值没变就不写样式。
+   * 为什么是逐帧而不是监听事件：坐标只在算的那一刻成立，而让浮层与锚点错位的
+   * 原因有一大把——内层容器滚动、CSS 过渡、transform、相邻元素的布局变化。
+   * 逐个去接事件源必定漏（先接了 MutationObserver + resize 漏掉滚动，补了
+   * scroll 又漏掉不产生滚动事件的那些）。锚定本就是一个视觉关系，逐帧维持它
+   * 才是对的量级。只在新会话页跑，且值没变就不写样式。
+   * 文档层的滚动与橡皮筋回弹不经这里：浮层是 absolute、与内容同层，合成器
+   * 直接带着走（回弹那次平移 JS 根本读不到，也只有同层这一条路能跟上）。
    */
   private follow: number | undefined
   private readonly observer: MutationObserver
@@ -155,7 +156,8 @@ export class Surfaces {
     whale.alt = 'Deepseek 鲸鱼娘'
     whale.src = ASSETS.whaleLay
     const tagline = this.nodes.own('div', `${ID}-tagline`)
-    tagline.style.cssText = 'position:fixed;pointer-events:none;text-align:center;'
+    // absolute 而非 fixed：标语锚在输入卡片上，要与内容同层（见 overlayRules 的说明）。
+    tagline.style.cssText = 'position:absolute;pointer-events:none;text-align:center;'
       + 'font-size:12px;color:var(--dsw-alias-label-tertiary);z-index:6'
     this.hero = { portrait, whale, tagline }
 

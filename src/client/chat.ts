@@ -130,8 +130,8 @@ export interface ChatMetrics {
  * @param el - 角色节点。
  * @param sheet - 精灵表 data URI。
  * @param cell - 精灵格坐标。
- * @param left - 视口 x。
- * @param top - 视口 y。
+ * @param left - 视口 x（写入时转文档坐标——节点是 absolute，与内容同层）。
+ * @param top - 视口 y（同上）。
  */
 function seatOne(el: HTMLElement, sheet: string, cell: [number, number], left: number, top: number): void {
   el.style.display = 'block'
@@ -140,8 +140,8 @@ function seatOne(el: HTMLElement, sheet: string, cell: [number, number], left: n
   el.style.backgroundImage = `url('${sheet}')`
   el.style.backgroundSize = `${SIZE * 2}px ${SIZE * 2}px`
   el.style.backgroundPosition = `${-cell[0] * SIZE}px ${-cell[1] * SIZE}px`
-  el.style.left = `${Math.round(left)}px`
-  el.style.top = `${Math.round(top)}px`
+  el.style.left = `${Math.round(left + window.scrollX)}px`
+  el.style.top = `${Math.round(top + window.scrollY)}px`
 }
 
 /**

@@ -138,14 +138,11 @@ ${SELECTORS.brand} svg { overflow: visible !important; transform: translateX(-27
 /* ⑤  body[data-ds-dark-theme] 归 ui-layout presenter 所有，本插件永不写它。
       明暗全程由 app 的外观设置驱动，这里只是把这条约定记在代码里。 */
 
-/* ⑥  关掉橡皮筋回弹。
-      回弹由合成器把「可滚动内容」整层平移，而 position:fixed 的浮层不在那一层里：
-      内容弹下去 30px，鲸鱼娘与标语原地不动，当场与各自的锚错开。要命的是
-      getBoundingClientRect 读不到这个位移——JS 侧无论接事件还是逐帧重贴都看不见，
-      所以这个缺陷在脚本层无解，只能让它别弹。
-      macOS 触控板两指拖动时最明显：hero 页本来就没有可滚内容，回弹照旧发生，
-      而 html/body 的 overflow-y 是 visible，根框架因此始终可弹。 */
-html, body,
+/* ⑥  文档层的橡皮筋回弹是**支持**的：内容锚定的浮层都住在文档滚动层（见
+      overlayRules），合成器平移时带着它们一起走，立绘按其视口身份留在原地。
+      但内层滚动面的回弹要关掉：它平移的是滚动面自己的内容层，浮层挂在 body
+      上、进不去那一层（往 React 管的子树里塞节点才进得去，不值得）。顺带
+      也挡掉滚动链——滚到底后把整页拖走，对一个应用面板本就不该发生。 */
 ${SELECTORS.thread},
 ${SELECTORS.trajectory} { overscroll-behavior-y: none; }
 `
@@ -301,8 +298,19 @@ ${SELECTORS.composerSend}:not(:disabled):hover {
  */
 function overlayRules(): string {
   return `
-#${ID}-portrait, #${ID}-whale, #${ID}-joi, #${ID}-zhouxin {
+/* 定位模式是每个浮层的锚定语义，不是实现细节：
+   —— 立绘 fixed：钉在视口上，是场所身份，内容怎么动它都不动（Owner 裁定）。
+   —— 其余 absolute：锚在内容上，所以要住进文档滚动层。macOS 橡皮筋回弹由
+      合成器平移「文档滚动层」，fixed 不在其中、JS 也读不到那次平移——
+      住错层的浮层会在回弹时当场脱锚，且脚本层无解。住对了层，回弹、
+      文档滚动都由合成器带着走，一行 JS 都不用。 */
+#${ID}-portrait {
   position: fixed;
+  pointer-events: none;
+  z-index: 0 !important;
+}
+#${ID}-whale, #${ID}-joi, #${ID}-zhouxin {
+  position: absolute;
   pointer-events: none;
   z-index: 0 !important;
 }
