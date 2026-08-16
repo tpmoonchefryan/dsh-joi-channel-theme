@@ -16,7 +16,7 @@
  *   node scripts/verify-4q.mjs                    只跑静态半
  *   node scripts/verify-4q.mjs capture/*.json     连实况半一起跑
  */
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, dirname, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -146,12 +146,26 @@ if (existsSync(auditFile)) {
   // 第四次栽在这上面时，出事的是 chat.ts 里的 JS 候选集——css.ts 早已限定，
   // 那份却漏了，于是 halo 打到了 Tooltip 上。
   const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
-  for (const file of ['src/client/css.ts', 'src/client/chat.ts', 'src/client/activity.ts']) {
-    const text = strip(readFileSync(resolve(ROOT, file), 'utf8'))
+  // 逐个文件点名会漏——第四次栽在 chat.ts 上，就是因为清单里没有它。
+  // 改成扫整个 src/client：新加的文件自动进体检，不必记得回来登记。
+  const clientDir = resolve(ROOT, 'src/client')
+  for (const name of readdirSync(clientDir).filter(f => /\.tsx?$/.test(f))) {
+    const file = `src/client/${name}`
+    const text = strip(readFileSync(resolve(clientDir, name), 'utf8'))
     check(`${file} 不含裸 [class*=_tab]`, !/\[class\*=_tab\]/.test(text))
     // bubble 必须带元素限定：Tooltip 的局部类也叫 .bubble。
     check(`${file} 的 [class*=bubble] 均已限定元素`,
       !/(^|[^a-z\]])\[class\*=[Bb]ubble\]/.test(text))
+    // CSS Modules 的 [hash]_[local]：hash 随 app 每次构建整批重排，锚在它上面
+    // 的选择器迟早无声失配（rc.6 一次报销四条：字标、大标题、hero 容器、发送键）。
+    // 判据是结构而不是长相：类名里 `_` 前头还有东西，那前头就是 hash。
+    // `[class*=_brand]` 这种 `_` 打头的是未哈希 local 名，放行。
+    // 只扫字符串字面量，免得把 DEFAULT_SKIN 这类标识符卷进来。
+    const hashed = [...text.matchAll(/'([^'\\]*)'|"([^"\\]*)"|`([^`\\]*)`/g)]
+      .map(m => m[1] ?? m[2] ?? m[3])
+      .flatMap(s => [...s.matchAll(/[.=]([A-Za-z0-9][A-Za-z0-9-]{3,})_/g)].map(m => m[1]))
+    check(`${file} 不含 CSS Modules hash 前缀`, hashed.length === 0,
+      hashed.length > 0 ? `发现 ${[...new Set(hashed)].join('、')}` : '')
   }
 }
 
@@ -178,6 +192,12 @@ if (captures.length === 0) {
     console.log(`  ── ${basename(file)} → ${q}`)
     check(`${q} 字标手术完成`, m.branded === true)
     check(`${q} 底纹有落点`, m.texturedSurfaces > 0, `实际 ${m.texturedSurfaces}`)
+    // 抓样早于自检字段的，这里没得可查——不硬性判失败，但也不假装查过了。
+    if (Array.isArray(m.selectorMisses)) {
+      check(`${q} 选择器无失配`, m.selectorMisses.length === 0, `落空 ${m.selectorMisses.join('、')}`)
+    } else {
+      console.log(`     · ${q}：抓样无 selectorMisses 字段，跳过自检核对`)
+    }
     if (m.hero !== undefined && m.hero !== null) {
       // 眼点按「距右缘 eyeRight」定义，随视口宽变化，所以比的是差值。
       eq(`${q} 眼点距右缘`, m.hero.viewport[0] - m.hero.eye.x, g.portrait.eyeRight)

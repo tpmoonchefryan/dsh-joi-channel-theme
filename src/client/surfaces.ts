@@ -9,9 +9,9 @@
  * 一律隐藏对应装饰，绝不抛给 app。装饰不出现是可接受的降级，
  * 把原生界面弄坏不是。
  */
-import { HALO_CLASS, ID, TEX_CLASS, stylesheet } from './css.ts'
+import { HALO_CLASS, ID, SELECTORS, TEX_CLASS, stylesheet } from './css.ts'
 import { OwnedNodes, framed } from './dom.ts'
-import { brandSurgery, placeHero, undoBrandSurgery, type HeroMetrics, type HeroNodes } from './hero.ts'
+import { brandSurgery, heroComposer, placeHero, undoBrandSurgery, type HeroMetrics, type HeroNodes } from './hero.ts'
 import { applyHalo, placeChat, type ChatMetrics, type ChatNodes, type ChatState } from './chat.ts'
 import { paintMeter, unpaintMeter } from './meter.ts'
 import {
@@ -49,6 +49,37 @@ export interface Metrics {
   onboarding: boolean
   /** 当前皮肤（含 native）。 */
   skin: string
+  /** 此刻本该命中却落空的选择器名；空数组表示 app 的类名与本插件仍然对得上。 */
+  selectorMisses: string[]
+}
+
+/** 落空持续多久才判定为改版失配。窄视口与首帧渲染造成的瞬时落空远短于此。 */
+const MISS_GRACE = 3000
+
+/**
+ * 选择器自检：只查此刻**必然存在**的那几条，落空即记名。
+ *
+ * fail-soft 要留，但不能连痕迹都不留。宿主升到 rc.6 时四条带 hash 的选择器
+ * 同时失配，而"装饰不出现"和"根本没进那个页面"从外面看一模一样，
+ * 于是这事一直无声地拖到用户报障。这里把它变成一句可搜的告警。
+ *
+ * 只查与页面无关的常驻锚点；hero 两条则在确实进了新会话页时才算数，
+ * 否则"对话页上没有大标题"会被误报成失配。
+ * @returns 落空的选择器名。
+ */
+function selectorMisses(): string[] {
+  const miss: string[] = []
+  const need = (name: keyof typeof SELECTORS): void => {
+    if (document.querySelector(SELECTORS[name]) === null) miss.push(name)
+  }
+  for (const name of ['brand', 'logoRow', 'sidebarCol', 'composerStack', 'composerSend'] as const) {
+    need(name)
+  }
+  if (heroComposer() !== null) {
+    need('headline')
+    need('heroStack')
+  }
+  return miss
 }
 
 /** 装饰层。 */
@@ -67,6 +98,18 @@ export class Surfaces {
   /** 手动置态（调试/演示）后暂停自动推导，避免下一帧被覆盖回去。 */
   private manual = false
   private textured = 0
+  /** 最近一次自检的落空名单。 */
+  private misses: string[] = []
+  /**
+   * 落空是从何时开始连续出现的；null 表示当前没有落空。
+   *
+   * 不能一查到就报警，也不能查一次就闩住：窄视口下 app 压根不渲染品牌区，
+   * React 首帧也常常什么都还没挂上，两者都会造成瞬时落空。真正的改版失配
+   * 是**持续**的，所以按时长定性。
+   */
+  private missSince: number | null = null
+  /** 告警只发一次，不在每帧刷屏。 */
+  private warned = false
   /**
    * 是否处于原生态。为真时装饰层静默：不画、不改 DOM，只如实上报。
    * 这不是 dispose——切回衣装要能原地恢复，所以监听与节点都留着。
@@ -192,6 +235,7 @@ export class Surfaces {
         hero: undefined, chat: undefined, texturedSurfaces: 0, branded: false,
         contextPercent: undefined, persistence: this.probe(),
         state: this.state, feedbackSpots: 0, subagentWhales: 0, onboarding: false,
+        selectorMisses: this.misses,
       }))
       return
     }
@@ -200,6 +244,24 @@ export class Surfaces {
     // 字标手术每帧重试而不是一次性闩住：React 可能重渲染字标，
     // 从原生切回衣装时也要重做。函数自身用 data-joi-done 做幂等。
     const branded = brandSurgery()
+    // 等 app 真渲染出来再自检。composerCard 是 app 自带的 data 钩子，不随类名
+    // 改版走，拿它当「界面已就位」的判据最稳；代价是它自己失配时这套自检不会
+    // 启动，但那种程度的改版会以远比装饰缺失更响的方式暴露出来。
+    if (document.querySelector(SELECTORS.composerCard) !== null) {
+      this.misses = selectorMisses()
+      if (this.misses.length === 0) {
+        this.missSince = null
+      } else {
+        this.missSince ??= Date.now()
+        if (!this.warned && Date.now() - this.missSince > MISS_GRACE) {
+          this.warned = true
+          console.warn(
+            `[joi-theme] 选择器持续失配：${this.misses.join('、')}。`
+            + 'DeepSeek Harness 的类名很可能已改版，对应装饰不会出现——请升级本插件或提 issue。',
+          )
+        }
+      }
+    }
     // 表情跟着真实运行状态走；手动置态时让位给人。
     if (!this.manual) this.state = this.tracker.read()
     this.textured = paintTexture()
@@ -220,6 +282,7 @@ export class Surfaces {
       hero, chat, texturedSurfaces: this.textured, branded, contextPercent,
       persistence: this.probe(),
       state: this.state, feedbackSpots, subagentWhales, onboarding, skin: this.suit,
+      selectorMisses: this.misses,
     }))
   }
 }

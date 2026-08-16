@@ -11,14 +11,24 @@
  *   ② 零散令牌项（detail-design 07）——焦点环、药丸 tab、🍊 列表。
  *   ③ 本插件自己那些浮层的定位骨架。
  *
- * 选择器里带 hash 的类名（r91kyq_ / KZiXvq_ / PcWdmW_）是脆的：app 一改就失配。
- * 全部集中在 SELECTORS 一处，且失配时是「装饰不出现」而不是「原生 UI 坏掉」。
+ * 失配时的姿态是「装饰不出现」，不是「原生 UI 坏掉」。
  */
 
-/** app 侧选择器。带 hash 的类名用 [class*=] 匹配，改版时只在这里对账。 */
+/**
+ * app 侧选择器。
+ *
+ * 一条铁律：**不许出现 CSS Modules 的 hash 前缀**。命名是 [hash]_[local]，
+ * 而 hash 随 app 的每次构建整批重排——宿主升到 0.1.0-rc.6 那次
+ * r91kyq→hHd-Xa、KZiXvq→pXSMma、PcWdmW→uV2eYG 同时变脸，四条选择器一起失配，
+ * 字标、立绘、鲸鱼娘当场全灭，而且是无声的。
+ *
+ * 只锚在两种东西上：app 自己给的语义钩子（data-* 与 role/aria），
+ * 以及未哈希的 local 名。local 名撞车时用 :has() 按结构消歧，不许退回 hash。
+ * verify-4q 的选择器体检会拦下 hash 前缀。
+ */
 export const SELECTORS = {
-  /** 品牌区（左上角字标）。 */
-  brand: '.r91kyq_brand',
+  /** 品牌区（左上角字标）。app 里 `_brand` 只此一家。 */
+  brand: '[class*=_brand]',
   /** 品牌区所在行，默认 overflow:hidden。 */
   logoRow: '[class*=logoRow]',
   /** 侧栏列。 */
@@ -29,8 +39,15 @@ export const SELECTORS = {
   composerCard: '[data-composer-card]',
   /** 会话线程的滚动体。 */
   thread: '[data-conversation-scroll]',
-  /** 新会话页的大标题行。 */
-  headline: '[class*=KZiXvq_headline]',
+  /**
+   * 新会话页的大标题行。
+   *
+   * `headline` 这个 local 名 ContextMeter 与 ApprovalPanel 也各有一个，裸匹配当场命中 2 个；
+   * `fishHitbox` 则是 HeroShell 独有，用它把正主认出来。
+   */
+  headline: '[class*=headline]:has(> [class*=fishHitbox])',
+  /** HeroShell 的竖排容器（标题 + 输入区），要整体压在角色之上。同样靠 fishHitbox 消歧。 */
+  heroStack: '[class*=_stack]:has(> [class*=headline] > [class*=fishHitbox])',
   /** 原生小鲸鱼的悬浮热区。 */
   fishHitbox: '[class*=fishHitbox]',
   /** 会话列表行。 */
@@ -51,8 +68,8 @@ export const SELECTORS = {
   trajectory: '[data-trajectory-scroll]',
   /** DisclosureRow 给 Think 行/工具行/命令卡统一打的未哈希钩子。 */
   disclosureRow: '[data-disclosure-row]',
-  /** 输入区主按钮（发送/停止）。 */
-  composerSend: 'button[class*=PcWdmW_primary]',
+  /** 输入区主按钮（发送/停止）。`_primary` 有四个模块在用，靠输入卡片把作用域收住。 */
+  composerSend: '[data-composer-card] button[class*=_primary]',
 } as const
 
 /** 本插件所有 DOM 节点的 id 前缀。 */
@@ -88,7 +105,7 @@ function structuralFixes(): string {
       卡片前面」——遮挡关系反了，深度线索也就没了。 */
 ${SELECTORS.composerStack},
 [class*=heroWorkspaceRow],
-[class*=KZiXvq_stack] { position: relative !important; z-index: 5 !important; }
+${SELECTORS.heroStack} { position: relative !important; z-index: 5 !important; }
 
 /* ②  logoRow 默认 overflow:hidden，会把移到第二行的 HARNESS 徽章整个裁掉。
       放开溢出并让出上方空间。 */
