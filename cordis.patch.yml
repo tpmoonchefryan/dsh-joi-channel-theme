@@ -1,0 +1,6 @@
+# 本包的配置层。宿主半边是空 apply —— 纯 UI 插件的存在意义是让包出现在
+# Loader 的 entries 里，client-modules 扫描到 dsh.client 声明后才会把浏览器
+# 半边挂进 __DSH_BOOT__ 并在 /plugins/<id>/client.js 供应。
+- insert:
+    - id: joi-channel-theme
+      name: dsh-joi-channel-theme

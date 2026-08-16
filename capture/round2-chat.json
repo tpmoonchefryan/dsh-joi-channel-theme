@@ -1,0 +1,3 @@
+{"suit":"flowers","dark":false,"chat":{"seat":834,"joiFootDelta":0,"zhouxinFootDelta":0},
+ "texturedSurfaces":2,"branded":true,"contextPercent":1,"skin":"flowers",
+ "$note":"第二批修复后复验。动作按钮 4/4 抬到角色之上（[data-conversation-scroll] z-index:1）；药丸标签左缘回 308、tab 条高 27px 与原生一致；轨迹工具栏内距补偿 1px、焦点填色恢复、金环移到承载边框那层、边框统一为瞳金；原生态样式表整张停用（brandPadLeft 0px / logoRowMinH auto / tabRadius 0px）；开关卡已注册进 settings.plugin.item。"}

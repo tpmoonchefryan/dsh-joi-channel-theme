@@ -1,0 +1,7 @@
+node_modules/
+lib/
+src/generated/
+.DS_Store
+design/
+*.tgz
+stuff/Referrence/

@@ -1,0 +1,13 @@
+{
+ "suit": "flowers",
+ "dark": true,
+ "chat": {
+  "seat": 834,
+  "joiFootDelta": 0,
+  "zhouxinFootDelta": 0
+ },
+ "texturedSurfaces": 2,
+ "branded": true,
+ "skin": "flowers",
+ "$note": "重出精灵表 + 结算对齐后的实测（rc.5 实机，文档内已留 6 个历史错误标记）。失败轮：info/info → running/running → error/error → info/info，结算态停留 5221ms。成功轮：info/info → running/running → success/success → info/info，停留 5220ms。两轮全程两张脸同步（无 running/error 这类错位帧）。四格几何经 align-sprite.mjs 归一：底缘极差 0.0000、中心偏移 0.0008。"
+}
