@@ -241,9 +241,15 @@ demande aucune autorisation de build.
 
 ## Garde-robe & natif
 
-La **garde-robe** se trouve dans Réglages → Général → 换装 : deux cartes de tenue ;
+La **garde-robe** se trouve dans Réglages → Général → 换装 : trois cartes côte à côte ;
 choisissez-en une et la pièce suit. La moitié basse conserve les trois cases natives
 clair / sombre / système — la luminosité appartient toujours à l'application.
+
+<p align="center">
+  <img src="./docs/settings-wardrobe.png" width="405" alt="Rangée garde-robe, clair, Joi·Flowers">
+  &nbsp;
+  <img src="./docs/settings-wardrobe-dark.png" width="405" alt="Rangée garde-robe, sombre, Joi·Library">
+</p>
 
 **« DeepSeek d'origine » est la troisième carte**, juste à côté des deux tenues :
 choisissez-la et l'interface revient au DeepSeek d'origine, le plugin restant

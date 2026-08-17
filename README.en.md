@@ -232,9 +232,15 @@ and re-run. The npm package ships prebuilt and needs no build permission.
 
 ## Wardrobe & Native
 
-**Wardrobe** lives in Settings → General → 换装: two suit cards; pick one and the
-room follows. The lower half keeps the native light / dark / system cubes —
+**Wardrobe** lives in Settings → General → 换装: three cards side by side; pick one and
+the room follows. The lower half keeps the native light / dark / system cubes —
 brightness always belongs to the app.
+
+<p align="center">
+  <img src="./docs/settings-wardrobe.png" width="405" alt="Wardrobe row, light, Joi·Flowers">
+  &nbsp;
+  <img src="./docs/settings-wardrobe-dark.png" width="405" alt="Wardrobe row, dark, Joi·Library">
+</p>
 
 **DeepSeek Native is the third card**, sitting right beside the two suits: pick it
 and the UI returns to stock DeepSeek while the plugin stays installed; pick a suit

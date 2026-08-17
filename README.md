@@ -218,8 +218,14 @@ npm 包已带构建产物，不需要任何构建授权。
 
 ## 换装与原生
 
-**换装**入口在 设置 → 通用设置 → 换装：两张衣装卡，选一套，房间会跟着换。
+**换装**入口在 设置 → 通用设置 → 换装：三张卡并排，选一张，房间会跟着换。
 下半部分仍是原生的浅色 / 深色 / 跟随系统三方块——明暗永远归 app 自己管。
+
+<p align="center">
+  <img src="./docs/settings-wardrobe.png" width="405" alt="换装行 · 浅色 · Joi·Flowers">
+  &nbsp;
+  <img src="./docs/settings-wardrobe-dark.png" width="405" alt="换装行 · 深色 · Joi·Library">
+</p>
 
 **「DeepSeek 原生」是第三张卡**，就并排在两套衣装旁边：选它即回到 DeepSeek 原生外观，
 插件保持安装；再选回任一套衣装即刻恢复。装了插件，不等于必须换肤。
