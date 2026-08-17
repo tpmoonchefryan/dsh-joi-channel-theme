@@ -1,6 +1,6 @@
 {
   "name": "dsh-joi-channel-theme",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "轴伊 Joi 双衣装主题（Joi-Flowers / Joi-Library）for DeepSeek Harness — unofficial, non-commercial fan theme plugin",
   "keywords": [
     "deepseek-harness",
@@ -58,12 +58,10 @@
     "prepublishOnly": "npm run build && npm run verify",
     "verify:static": "node scripts/verify-4q.mjs"
   },
-  "dependencies": {
-    "@deepseek-ai/dsh-settings": "0.1.0-rc.6",
-    "@deepseek-ai/schemastery": "3.18.1-rc.4"
-  },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.1-rc.4",
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/dsh-settings": "0.1.0-rc.6",
+    "@deepseek-ai/schemastery": "3.18.1",
     "@deepseek-ai/dsh-client-locale": "0.1.0-rc.6",
     "@deepseek-ai/dsh-client-runtime": "0.1.0-rc.6",
     "@deepseek-ai/dsh-client-ui-primitives": "0.1.0-rc.6",
@@ -76,6 +74,8 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-settings": "^0.1.0-rc.6",
+    "@deepseek-ai/schemastery": "^3.18.1-rc.1",
     "react": "^18.2.0"
   },
   "publishConfig": {
