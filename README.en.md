@@ -193,8 +193,8 @@ npx @deepseek-ai/dsh plugin --profile web remove dsh-joi-channel-theme
 
 > [!NOTE]
 > **That is the only time you touch a terminal.** Everything afterwards lives in
-> the UI: the wardrobe under Settings → General, the master switch under
-> Settings → Plugins → plugin configuration. DeepSeek Harness currently ships no
+> the UI: the wardrobe — and the way back to stock DeepSeek — both live in the
+> same row under Settings → General. DeepSeek Harness currently ships no
 > graphical plugin installer, so this one step is unavoidable.
 
 > [!TIP]
@@ -236,9 +236,13 @@ and re-run. The npm package ships prebuilt and needs no build permission.
 room follows. The lower half keeps the native light / dark / system cubes —
 brightness always belongs to the app.
 
-The **master switch** lives in Settings → Plugins → plugin configuration: turn it
-off and the UI returns to stock DeepSeek while the plugin stays installed; turn it
-back on and your previous suit returns. Installing the plugin never forces the skin.
+**DeepSeek Native is the third card**, sitting right beside the two suits: pick it
+and the UI returns to stock DeepSeek while the plugin stays installed; pick a suit
+again and it comes straight back. Installing the plugin never forces the skin.
+
+It is not shaped as a plugin on/off switch, because it never was one — choosing it
+disables nothing: the bundle stays installed and loaded, and its state in the plugin
+list does not move. All it has ever switched is the look.
 
 <details>
 <summary><strong>What hides in this room (design easter eggs)</strong></summary>

@@ -6,9 +6,10 @@
  * 所以不用 fork ui-theme，插件卸载后内置行自动回归。
  *
  * 两层结构：
- *   上 = 两张衣装卡（三色缩览 + 性格标签 + 选中金边）
+ *   上 = 三张外观卡（两套衣装 + 原生；三色缩览 + 性格标签 + 选中金边）
  *   下 = 原生的明暗三方块，原样保留
- * 明暗永远归 app —— 衣装换的是色相，不是明暗。
+ * 明暗永远归 app —— 衣装换的是色相，不是明暗。选了「原生」也一样：
+ * 那一栏关掉的是本插件的外观，不是宿主的明暗偏好。
  *
  * 「换装」这个词是银翼杀手 Joi 元叙事唯一落到产品文案的地方。副题
  * 「选一套衣装，房间会跟着换」把 token 覆盖这件事翻译成用户能懂的因果。
@@ -18,7 +19,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { PALETTE } from '../generated/baseline.ts'
-import { SUITS, type Skin, type Suit } from '../contract.ts'
+import { SKINS, type Skin } from '../contract.ts'
 import type { createSuitRowStore } from './suit-row-store.ts'
 
 /** app 的内置明暗偏好。 */
@@ -36,15 +37,18 @@ export interface SuitRowInjected {
 export type SuitRowProps = PropsStore<ReturnType<typeof createSuitRowStore>> & SuitRowInjected
 
 /**
- * 两张衣装卡的文案。性格标签是设计稿里两套衣装的人格总结。
+ * 三张卡的文案。性格标签是设计稿里两套衣装的人格总结。
  *
- * 这里不放「原生」：那是「要不要让插件生效」，属于插件治理，
- * 归 设置 → 插件 → 插件配置 的开关卡（见 PowerCard）。
- * 混在一起会让人以为原生也是一套衣装。
+ * 「原生」曾被放在 设置 → 插件 → 插件配置，理由是它属于插件治理而非外观偏好。
+ * 那个理由站不住：关掉它并不停用插件——bundle 照样装着、照样加载，插件列表里
+ * 的状态一动不动，它切的自始至终只是 suit 字段（native 本就是该字段的合法值）。
+ * 摆在插件配置里反而暗示「这是插件开关」，比「原生也算一套」误导更甚。
+ * 用户要回答的问题只有一个：这个房间用哪种外观。三个选项就该并排。
  */
-const SUIT_CARDS: Record<Suit, { name: string, tag: string }> = {
+const SKIN_CARDS: Record<Skin, { name: string, tag: string }> = {
   flowers: { name: 'Joi · Flowers', tag: '暖 · 舞台 · 陪伴' },
   library: { name: 'Joi · Library', tag: '冷 · 整理 · 专注' },
+  native: { name: 'DeepSeek 原生', tag: '不使用本主题 · 插件保持安装' },
 }
 
 /** 明暗三方块，与内置行同序同图标。 */
@@ -56,6 +60,16 @@ const CUBES: ReadonlyArray<{ id: Preference, label: string, Icon: typeof IconLig
 
 /** 三色缩览取哪三个语义槽：底色、品牌色、瞳金——一眼能分辨两套衣装。 */
 const SWATCH = ['ground', 'brand', 'gold'] as const
+
+/**
+ * 原生卡的三色缩览：直接读 app 自己的令牌，而不是本插件调色板里的任何一组。
+ * 它因此随宿主主题实时变化，视觉上就与两张衣装卡区分开——那两张是固定的成品色。
+ */
+const NATIVE_SWATCH = [
+  'var(--dsw-alias-bg-base)',
+  'var(--dsw-alias-brand-primary)',
+  'var(--dsw-alias-label-secondary)',
+] as const
 
 /**
  * 渲染换装行。
@@ -71,14 +85,14 @@ export function SuitRow({ useStore, setSuit, setTheme }: SuitRowProps): React.JS
       <div>
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dsw-alias-label-primary)' }}>换装</div>
         <div style={{ fontSize: 12, color: 'var(--dsw-alias-label-tertiary)', marginTop: 2 }}>
-          选一套衣装，房间会跟着换
+          选一套衣装，房间会跟着换；也可以回到 DeepSeek 原生外观
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: 10 }}>
-        {SUITS.map((id) => {
+        {SKINS.map((id) => {
           const selected = suit === id
-          const card = SUIT_CARDS[id]
+          const card = SKIN_CARDS[id]
           return (
             <button
               key={id}
@@ -101,14 +115,17 @@ export function SuitRow({ useStore, setSuit, setTheme }: SuitRowProps): React.JS
               }}
             >
               <div style={{ display: 'flex', gap: 4 }}>
-                {SWATCH.map(slot => (
+                {(id === 'native'
+                  ? NATIVE_SWATCH
+                  : SWATCH.map(slot => PALETTE[id].light[slot])
+                ).map((color, i) => (
                   <span
-                    key={slot}
+                    key={color + String(i)}
                     style={{
                       width: 18,
                       height: 18,
                       borderRadius: 5,
-                      background: PALETTE[id].light[slot],
+                      background: color,
                       border: '1px solid var(--dsw-alias-border-l2)',
                     }}
                   />

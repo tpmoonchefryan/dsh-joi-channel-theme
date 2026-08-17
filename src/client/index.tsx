@@ -24,8 +24,6 @@ import { SuitRuntime } from './suit.ts'
 import { Surfaces } from './surfaces.ts'
 import { SuitRow, type SuitRowInjected } from './SuitRow.tsx'
 import { createSuitRowStore, type Preference } from './suit-row-store.ts'
-import { PowerCard, type PowerCardInjected } from './PowerCard.tsx'
-import { createPowerStore } from './power-store.ts'
 import { installFavicon } from './favicon.ts'
 
 /**
@@ -79,41 +77,10 @@ export function apply(ctx: ClientContext): void {
   }), 'joi-theme: 设置回读')
 
   installSuitRow(ctx, suits)
-  installPowerCard(ctx, suits)
 
   // 量测入口。回归脚本用它取几何读数，比截图比对稳定得多。
   window.__joi = () => surfaces.metrics()
   ctx.effect(() => () => { delete window.__joi }, 'joi-theme: 量测入口')
-}
-
-/**
- * 在 设置 → 插件 → 插件配置 里放一张开关卡。
- *
- * 与换装行分层：那里回答「选哪套衣装」，这里回答「要不要让这个插件生效」。
- * 后者是插件治理层面的问题，混进外观偏好里会让人以为原生也是一套衣装。
- * 关掉不改持久契约——`native` 本来就是那个字段的合法值。
- * @param ctx - 客户端上下文。
- * @param suits - 皮肤运行时。
- */
-function installPowerCard(ctx: ClientContext, suits: SuitRuntime): void {
-  const store = createPowerStore()
-  let bound: BoundActions<typeof store> | undefined
-  const sync = (): void => { bound?.sync(suits.skin) }
-  ctx.effect(() => suits.subscribe(sync), 'joi-theme: 开关卡同步')
-
-  const injected = (actions: BoundActions<typeof store>): PowerCardInjected => {
-    bound = actions
-    sync()
-    return { setEnabled: (on: boolean) => { suits.setEnabled(on) } }
-  }
-
-  ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
-    name: 'settings.plugin.item',
-    id: 'joi-channel-theme',
-    order: 30,
-    store,
-    inject: injected,
-  }, PowerCard))
 }
 
 /**

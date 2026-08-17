@@ -200,9 +200,10 @@ npx @deepseek-ai/dsh plugin --profile web remove dsh-joi-channel-theme
 
 > [!NOTE]
 > **C'est la seule fois où vous touchez un terminal.** Tout le reste se passe dans
-> l'interface : la garde-robe sous Réglages → Général, l'interrupteur général sous
-> Réglages → Plugins → configuration. DeepSeek Harness ne propose actuellement
-> aucun installateur graphique de plugins ; cette étape est donc incontournable.
+> l'interface : la garde-robe — et le retour à l'apparence DeepSeek d'origine —
+> partagent la même rangée sous Réglages → Général. DeepSeek Harness ne propose
+> actuellement aucun installateur graphique de plugins ; cette étape est donc
+> incontournable.
 
 > [!TIP]
 > Après retrait, l'interface revient au natif élément par élément — jetons,
@@ -244,9 +245,14 @@ La **garde-robe** se trouve dans Réglages → Général → 换装 : deux carte
 choisissez-en une et la pièce suit. La moitié basse conserve les trois cases natives
 clair / sombre / système — la luminosité appartient toujours à l'application.
 
-L'**interrupteur général** se trouve dans Réglages → Plugins → configuration :
-éteint, l'interface revient au DeepSeek d'origine, le plugin restant installé ;
-rallumé, votre tenue précédente revient. Installer le plugin n'impose jamais le thème.
+**« DeepSeek d'origine » est la troisième carte**, juste à côté des deux tenues :
+choisissez-la et l'interface revient au DeepSeek d'origine, le plugin restant
+installé ; rechoisissez une tenue et elle revient aussitôt. Installer le plugin
+n'impose jamais le thème.
+
+Ce n'est pas un interrupteur d'activation du plugin, car cela n'en a jamais été un :
+la choisir ne désactive rien — le bundle reste installé et chargé, et son état dans
+la liste des plugins ne bouge pas. Ce qui change, c'est uniquement l'apparence.
 
 <details>
 <summary><strong>Ce qui se cache dans cette pièce (clins d'œil de design)</strong></summary>
