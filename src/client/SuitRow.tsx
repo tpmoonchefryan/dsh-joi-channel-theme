@@ -97,12 +97,20 @@ const NATIVE = {
     lineHeight: '18px',
     color: 'var(--dsw-alias-label-tertiary)',
   },
-  /** `.themeCube`：三个一行、等分、圆角 16、发丝边、透明底。 */
+  /**
+   * `.themeCube`：三个一行、等分、圆角 16、发丝边、透明底。
+   *
+   * 边框必须写成三个长写而不是 `border` 简写：选中态要改 borderColor，
+   * 简写与长写混用时 React 会在取消选中的那一帧把 borderColor 从 style 上摘掉，
+   * 而它是在 border 简写之后被摘的——结果边色回落到 currentColor（深色下是白），
+   * 取消选中的卡反而比选中的卡更抢眼。每帧属性集合保持一致就不会。
+   */
   cube: {
     boxSizing: 'border-box',
     flex: '1 1 180px',
     display: 'flex',
-    border: '1px solid var(--dsw-alias-border-l2)',
+    borderWidth: 1,
+    borderStyle: 'solid',
     borderRadius: 16,
     background: 'transparent',
     font: 'inherit',
@@ -115,22 +123,29 @@ const NATIVE = {
   cubeRow: { display: 'flex', alignItems: 'stretch', gap: 8, flexWrap: 'wrap' },
 } as const
 
-/** `.selected`：填充 + 强调描边。描边色的偏离理由见 NATIVE 的说明。 */
-const SELECTED = {
-  background: 'var(--dsw-alias-bg-module-platform)',
-  borderColor: 'var(--dsw-alias-brand-primary)',
-} as const
-
 /**
- * `.themeCube:hover:not(.selected)` 的等价物。
+ * 每张卡的状态皮：选中/悬浮/静置三者返回同一组属性名，只换值。
  *
- * 该令牌是半透明白叠加（rgba(255,255,255,.08)），与皮肤无关，两套衣装、
- * 明暗都成立，所以直接用 app 的值而不进本插件的覆盖层。
- *
- * 用组件状态而不是 CSS `:hover`：内联样式写不了伪类，而放进本插件的静态
- * 样式表又会在原生态下随整表一起停用——那时这一行仍然显示，悬浮反馈却没了。
+ * 属性集合恒定是硬要求，不是风格——见 NATIVE.cube 的说明。
+ * 选中态照原生 `.selected` 的结构（填充 + 强调描边）；描边色的偏离理由见 NATIVE。
+ * 深色下 bg-module-platform 与页面底色差得很少（实测对比 1.34–1.42），
+ * 所以选中的可辨识度主要由描边承担，填充只是辅助。
+ * @param selected - 是否选中。
+ * @param hovered - 是否悬浮。
+ * @returns 可展开进 style 的属性。
  */
-const HOVER = { background: 'var(--dsw-alias-interactive-bg-hover)' } as const
+function skin(selected: boolean, hovered: boolean): {
+  background: string, borderColor: string,
+} {
+  return {
+    background: selected
+      ? 'var(--dsw-alias-bg-module-platform)'
+      : (hovered ? 'var(--dsw-alias-interactive-bg-hover)' : 'transparent'),
+    borderColor: selected
+      ? 'var(--dsw-alias-brand-primary)'
+      : 'var(--dsw-alias-border-l2)',
+  }
+}
 
 /** 三色缩览取哪三个语义槽：底色、品牌色、瞳金——一眼能分辨两套衣装。 */
 const SWATCH = ['ground', 'brand', 'gold'] as const
@@ -155,9 +170,10 @@ export function SuitRow({ useStore, setSuit, setTheme }: SuitRowProps): React.JS
   const preference = useStore(s => s.preference)
   // 六个按钮共用一个悬浮标识：两组的 id 不重叠（衣装 vs 明暗偏好）。
   const [hovered, setHovered] = useState<string | null>(null)
-  /** 未选中的那个才有悬浮态——与原生的 `:hover:not(.selected)` 同义。 */
-  const hoverOf = (id: string, selected: boolean): object =>
-    (!selected && hovered === id ? HOVER : {})
+  /**
+   * 悬浮反馈用组件状态而不是 CSS `:hover`：内联样式写不了伪类，而放进本插件的
+   * 静态样式表又会在原生态下随整表一起停用——那时这一行仍然显示，悬浮却没了。
+   */
   const hoverProps = (id: string): object => ({
     onMouseEnter: () => { setHovered(id) },
     onMouseLeave: () => { setHovered(cur => (cur === id ? null : cur)) },
@@ -193,8 +209,7 @@ export function SuitRow({ useStore, setSuit, setTheme }: SuitRowProps): React.JS
                 gap: 6,
                 padding: '14px 16px',
                 textAlign: 'left',
-                ...hoverOf(id, selected),
-                ...(selected ? SELECTED : {}),
+                ...skin(selected, hovered === id),
               }}
             >
               <div style={{ display: 'flex', gap: 4 }}>
@@ -237,8 +252,7 @@ export function SuitRow({ useStore, setSuit, setTheme }: SuitRowProps): React.JS
               justifyContent: 'center',
               gap: 4,
               padding: '20px 32px',
-              ...hoverOf(id, preference === id),
-              ...(preference === id ? SELECTED : {}),
+              ...skin(preference === id, hovered === id),
             }}
           >
             <Icon />
