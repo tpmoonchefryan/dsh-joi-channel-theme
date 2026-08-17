@@ -41,14 +41,36 @@ const PLAN = [
   ['joiFlowers', 'In a Chat - Flowers 3-aligned.png', 512], // 112 精灵 2×2
   ['joiLibrary', 'In a Chat - Library 2-aligned.png', 512], //
   ['zhouxin', 'In a Chat - Zhouxin-traced.png', 512], //
-  ['subWhales', 'Sub Agent Whales.png', 360], // 20 精灵 1×3
+  // 第四项 = 源图烤死白边的宽度（px）。给了就走「剥边 → 缩放 → 按输出尺寸重画 1px 边」，
+  // 见下方 PY 的 strip_rim / draw_rim。只有缩放比极大的小图才需要，理由：
+  //   源图白边 11px（占 724 的 1.5%），缩到 20 CSS px 后仅剩 0.61 设备像素——
+  //   亚像素的边沿每条边落在像素网格的位置不同，抗锯齿把它抹成深浅不一的灰边，
+  //   于是「白边不匀」并且整体发糊。这不是分辨率不够，是烤死的边扛不住这个比例。
+  // 目标宽 120 = 3 格 × 40，正好是 20 CSS px 在 DPR2 下的设备像素，浏览器不再二次缩放
+  //（此前是 360，浏览器还要做一次 3:1 廉价缩小，实测明显更糊）。
+  ['subWhales', 'Sub Agent Whales.png', 120, 11], // 20 精灵 1×3
 ]
 
 const PY = `
 import sys, json, io, base64, math
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageFilter
 
 plan = json.loads(sys.argv[1]); src_dir = sys.argv[2]
+
+def strip_rim(im, r):
+    """剥掉烤死的白边：alpha 向内侵蚀 r 次，剩下的就是图形本体。
+    精灵表的格与格之间有透明间隙，所以整表一起做不会串味（gen 前已验）。"""
+    a = im.split()[3]
+    for _ in range(r): a = a.filter(ImageFilter.MinFilter(3))
+    o = im.copy(); o.putalpha(a); return o
+
+def draw_rim(im, r):
+    """按当前尺寸重画 r 像素白边：膨胀 alpha 得外环，填白，再把图形叠回去。
+    边宽是整像素，因此每条边一样厚——这正是烤死的边做不到的。"""
+    a = im.split()[3]
+    for _ in range(r): a = a.filter(ImageFilter.MaxFilter(3))
+    out = Image.new("RGBA", im.size, (255, 255, 255, 255)); out.putalpha(a)
+    out.alpha_composite(im); return out
 
 def flatten(im, bg=(128,128,128)):
     """按 alpha 合成到中性底：只有可见部分参与保真度比较。"""
@@ -67,11 +89,17 @@ def score(a, q):
     return psnr, amax
 
 out, report = {}, []
-for key, name, width in plan:
+for entry in plan:
+    key, name, width = entry[0], entry[1], entry[2]
+    rim = entry[3] if len(entry) > 3 else 0
     a = Image.open(src_dir + "/" + name).convert("RGBA")
     w0, h0 = a.size
+    if rim:
+        a = strip_rim(a, rim)
     if w0 > width:
         a = a.resize((width, round(h0 * width / w0)), Image.LANCZOS)
+    if rim:
+        a = draw_rim(a, 1)
     best = None
     for tag, kw in (("lossless", dict(lossless=True, method=6)),
                     ("q95", dict(quality=95, method=6))):
