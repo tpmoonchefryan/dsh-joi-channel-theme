@@ -172,13 +172,14 @@ if (existsSync(auditFile)) {
 }
 
 // 自动描边（halo）也受「样式表静态、模式走 token」约束：深色下地面近黑，
-// 把 bg-base 写死进 text-shadow 的硬 1px 描边就是黑描边（实测可读性事故）。
-// 描边值必须来自 token 层，且深色档不得再是硬描边。
+// 把 bg-base 写死进 text-shadow 的硬 1px 描边就是粗黑描边（实测可读性事故）。
+// 描边值必须来自 token 层；深色档用 0.5px 细边+软衬，不得回到 1px 硬描边。
 const haloCss = strip(readFileSync(resolve(ROOT, 'src/client/css.ts'), 'utf8'))
 check('halo 描边走私有 token', haloCss.includes('text-shadow: var(--joi-halo-shadow)'))
 check('气泡 halo 有独立 token', haloCss.includes('var(--joi-halo-bubble-shadow)'))
 const haloTokens = readFileSync(resolve(ROOT, 'src/client/tokens.ts'), 'utf8')
-check('深色 halo 为软光晕（非硬黑描边）', /0 0 3px/.test(haloTokens) && /0 0 6px/.test(haloTokens))
+check('深色 halo 细描边（0.5px 而非 1px 硬边）', /0\.5px 0 0/.test(haloTokens))
+check('深色 halo 带软衬', /0 0 2px/.test(haloTokens) && /0 0 4px/.test(haloTokens))
 check('深色气泡 halo 关闭', /dark:\s*'none'/.test(haloTokens))
 
 // ══ 实况半 ════════════════════════════════════════════════════════════

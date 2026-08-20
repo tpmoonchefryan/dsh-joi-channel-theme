@@ -87,6 +87,20 @@ function haloHard(ground: string): string {
 }
 
 /**
+ * 细 4 向 0.5px 描边 + 地面色软光晕。
+ *
+ * 深色档专用：1px 硬描边在 13px 小字号（Think 行 / 工具行 / Bash 指令行）
+ * 上读作「粗黑线」，字发糊；但完全去掉描边，浅色字又压不住浅色角色。
+ * 细边保字形轮廓，2/4px 光晕在字形外撑出与角色的分离带——两者都不单飞。
+ * @param ground - 地面色。
+ * @returns 可直接赋给 text-shadow 的值。
+ */
+function haloThin(ground: string): string {
+  return `0.5px 0 0 ${ground}, -0.5px 0 0 ${ground}, 0 0.5px 0 ${ground}, 0 -0.5px 0 ${ground},`
+    + ` 0 0 2px ${ground}, 0 0 4px ${ground}`
+}
+
+/**
  * 组装本插件私有的 CSS 变量。
  * @param suit - 衣装。
  * @returns 私有变量的明暗值对。
@@ -106,14 +120,13 @@ function privateVars(suit: Suit): TokenOverrides {
     '--joi-brand-logo': { light: `url('${logo}')`, dark: `url('${logo}')` },
     // 气泡文字色随气泡底走：Flowers 金底配深棕字，Library 灰底配正文色。
     '--joi-bubble-ink': pair(l.bubbleInk, d.bubbleInk),
-    // 自动描边（halo）：浅色保持硬 1px die-cut 白描边；深色改软光晕。
-    // 深色下地面近黑，硬 1px 地面描边就是黑描边——压在浅色角色上读作
-    // 「每颗字带黑线」，可读性不升反降。软光晕是 chat-mockup 的原始
-    // halo 语言，落地时改硬描边只在浅色下验证过。
+    // 自动描边（halo）：浅色保持硬 1px die-cut 白描边；深色改细描边+软衬。
+    // 深色下地面近黑，1px 硬描边在 13px 小字号上读作「粗黑线」，字发糊；
+    // 但去掉描边浅色字压不住浅色角色（可读性更差）。故深色档收窄到
+    // 0.5px 细边，再叠 2/4px 地面色软光晕做衬——细边保字形、光晕撑分离带。
     '--joi-halo-shadow': {
       light: haloHard(l.ground ?? 'transparent'),
-      dark: `0 0 3px ${d.ground ?? 'transparent'}, 0 0 3px ${d.ground ?? 'transparent'},`
-        + ` 0 0 6px ${d.ground ?? 'transparent'}, 0 0 6px ${d.ground ?? 'transparent'}`,
+      dark: haloThin(d.ground ?? 'transparent'),
     },
     // 用户气泡是不透明表面（Flowers 瞳金 / Library 灰底），角色透不出来，
     // halo 在那里没有可读性功能可言。浅色保留白描边维持既有贴纸观感；
