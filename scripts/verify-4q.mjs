@@ -49,6 +49,9 @@ function eq(label, actual, expected) {
   check(label, Object.is(actual, expected), `实际 ${JSON.stringify(actual)}，期望 ${JSON.stringify(expected)}`)
 }
 
+/** 剥掉注释再扫源码文本（结构体检用，不改变字面量之外的语义）。 */
+const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+
 // ══ 静态半 ═══════════════════════════════════════════════════════════
 console.log('静态半：基线 → 生成产物 → token 覆盖层')
 
@@ -145,7 +148,6 @@ if (existsSync(auditFile)) {
   // 裸子串匹配的禁令要守在所有写选择器的地方，不止样式表。
   // 第四次栽在这上面时，出事的是 chat.ts 里的 JS 候选集——css.ts 早已限定，
   // 那份却漏了，于是 halo 打到了 Tooltip 上。
-  const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
   // 逐个文件点名会漏——第四次栽在 chat.ts 上，就是因为清单里没有它。
   // 改成扫整个 src/client：新加的文件自动进体检，不必记得回来登记。
   const clientDir = resolve(ROOT, 'src/client')
@@ -168,6 +170,16 @@ if (existsSync(auditFile)) {
       hashed.length > 0 ? `发现 ${[...new Set(hashed)].join('、')}` : '')
   }
 }
+
+// 自动描边（halo）也受「样式表静态、模式走 token」约束：深色下地面近黑，
+// 把 bg-base 写死进 text-shadow 的硬 1px 描边就是黑描边（实测可读性事故）。
+// 描边值必须来自 token 层，且深色档不得再是硬描边。
+const haloCss = strip(readFileSync(resolve(ROOT, 'src/client/css.ts'), 'utf8'))
+check('halo 描边走私有 token', haloCss.includes('text-shadow: var(--joi-halo-shadow)'))
+check('气泡 halo 有独立 token', haloCss.includes('var(--joi-halo-bubble-shadow)'))
+const haloTokens = readFileSync(resolve(ROOT, 'src/client/tokens.ts'), 'utf8')
+check('深色 halo 为软光晕（非硬黑描边）', /0 0 3px/.test(haloTokens) && /0 0 6px/.test(haloTokens))
+check('深色气泡 halo 关闭', /dark:\s*'none'/.test(haloTokens))
 
 // ══ 实况半 ════════════════════════════════════════════════════════════
 // 按内容筛而不是按文件名：capture/ 里还放着选择器体检抓样，

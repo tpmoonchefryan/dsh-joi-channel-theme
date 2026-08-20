@@ -335,14 +335,22 @@ ${SELECTORS.thread} { position: relative; z-index: 1; }
 
 /* 与角色重叠的文字加一圈底色描边保可读性。相交检测纯 CSS 做不到，
    由 JS 判定后打这个类（见 chat.ts）。层序由上面那条容器规则给，
-   这里只负责描边——两者一个管层、一个管可读。 */
+   这里只负责描边——两者一个管层、一个管可读。
+
+   描边值走私有 token（--joi-halo-*）：浅色是硬 1px die-cut 白描边；
+   深色地面近黑，同一条硬描边就是黑描边（发送气泡、Bash 指令行都在
+   底部与角色相交，黑线让字发糊），所以深色改用软光晕。气泡是
+   不透明表面，角色透不出来，深色下干脆无描边——取值都在 tokens.ts。 */
 .${HALO_CLASS} {
   /* 只留描边。层序归上面那条线程容器规则，这里再写 position/z-index 有两害：
      一是把 position:fixed 的元素拽进普通流（提示条闪烁的直接成因），
      二是 z-index:7 在列的层叠上下文里会盖过代码块的粘性标题（app 用 6）。 */
-  text-shadow:
-     1px 0 0 var(--dsw-alias-bg-base), -1px 0 0 var(--dsw-alias-bg-base),
-     0 1px 0 var(--dsw-alias-bg-base), 0 -1px 0 var(--dsw-alias-bg-base);
+  text-shadow: var(--joi-halo-shadow);
+}
+/* 气泡必须限定 div：Tooltip 自己的局部类也叫 .bubble（哈希后仍含该子串），
+   同名规则与正文那条理由相同。特异度 (0,2,1) 稳胜 .joi-halo 的 (0,1,0)。 */
+div[class*=bubble].${HALO_CLASS}, div[class*=Bubble].${HALO_CLASS} {
+  text-shadow: var(--joi-halo-bubble-shadow);
 }
 `
 }

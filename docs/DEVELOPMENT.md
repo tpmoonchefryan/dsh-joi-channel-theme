@@ -89,7 +89,10 @@ npm run verify    # 四象限回归（静态半）
   未列举组件，44 条语义 alias 负责分层（浅色主题里 bg-base / layer-1 / layer-3
   全映射到同一级 static-00，分层靠描边而非填色，所以必须直写 alias）。
 - **样式表是静态的**。底纹图案、logo、描边色也做成 token，换装只换 token，
-  一行 CSS 都不重建。
+  一行 CSS 都不重建。文字自动描边（`.joi-halo`）同理：浅色是硬 1px die-cut
+  白描边，深色改 `0 0 3px/6px` 软光晕（地面近黑时硬描边就是黑描边），
+  用户气泡深色下无描边（不透明表面，角色透不出来，描边没有可读性功能）——
+  三个取值都住在 `tokens.ts` 的 `--joi-halo-*` 里。
 - **换装行**走 ui-slots 的 cell shadowing（同 id、priority −1），不 fork ui-theme；
   卸载后内置外观行自动回归。
 - **装饰层**（立绘、鲸鱼娘、两个 Q 版角色、字标手术、底纹落点）没有官方接缝，
