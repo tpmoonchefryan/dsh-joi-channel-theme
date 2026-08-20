@@ -72,6 +72,14 @@ export const SELECTORS = {
   disclosureRow: '[data-disclosure-row]',
   /** 输入区主按钮（发送/停止）。`_primary` 有四个模块在用，靠输入卡片把作用域收住。 */
   composerSend: '[data-composer-card] button[class*=_primary]',
+  /**
+   * Bash 工具行。ui-tool 的 BashRow 复刻了 ToolRow 的展开交互，但自带
+   * `data-sample` 钩子而不走 DisclosureRow——没有 `data-disclosure-row`，
+   * 按后者枚举的 halo 候选集够不着它。data-sample 全仓只此一家。
+   */
+  bashRow: '[data-sample=bash]',
+  /** TerminalBlock 的未哈希钩子（Bash 展开后的终端卡；轨迹详情也用它，halo 只在对话页跑）。 */
+  terminal: '[data-terminal]',
 } as const
 
 /** 本插件所有 DOM 节点的 id 前缀。 */

@@ -171,12 +171,18 @@ export function applyHalo(nodes: ChatNodes): void {
   // 深色下压到角色上就没有可读性兜底。展开的 Think / 命令正文是
   // data-disclosure-row 的相邻兄弟（pre=命令卡输出，div=Think 正文），
   // 一并纳入；候选集里的重复命中无害，text-shadow 落在最内层，不会叠加。
+  //
+  // Bash 行是唯一不归 DisclosureRow 管的工具行：ui-tool 的 BashRow 自带
+  // data-sample 钩子复刻交互，展开后的终端卡在它的相邻兄弟 div 里。
+  // [data-terminal] 单独列出，兜住终端卡里命令与输出各行的文字。
   const blocks = document.querySelectorAll<HTMLElement>(
     '[class*=markdown] :is(p, td, th, li, h1, h2, h3, h4, h5, h6, blockquote, pre),'
     + '[class*=Markdown] :is(p, td, th, li, h1, h2, h3, h4, h5, h6, blockquote, pre),'
     + 'div[class*=bubble], div[class*=Bubble],'
     + `${SELECTORS.disclosureRow},`
-    + `${SELECTORS.disclosureRow} + pre, ${SELECTORS.disclosureRow} + div`,
+    + `${SELECTORS.disclosureRow} + pre, ${SELECTORS.disclosureRow} + div,`
+    + `${SELECTORS.bashRow}, ${SELECTORS.bashRow} + div,`
+    + `${SELECTORS.terminal}`,
   )
   for (const block of blocks) {
     const r = block.getBoundingClientRect()

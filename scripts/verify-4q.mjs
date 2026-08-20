@@ -184,10 +184,13 @@ check('深色气泡 halo 关闭', /dark:\s*'none'/.test(haloTokens))
 
 // 输出类型全覆盖：halo 候选集不许退化成只数 p——表格单元（td/th）与
 // 展开的 Think/命令正文（data-disclosure-row 的相邻兄弟）都必须在内，
+// Bash 工具行自带 data-sample 钩子、不走 DisclosureRow，同样必须在内，
 // 否则深色下压到角色上的表格与 Bash 输出正文没有可读性兜底。
 const chatText = strip(readFileSync(resolve(ROOT, 'src/client/chat.ts'), 'utf8'))
 check('halo 覆盖表格单元', chatText.includes('td, th'))
 check('halo 覆盖展开的 Think/命令正文', chatText.includes('+ pre') && chatText.includes('+ div'))
+check('halo 覆盖 Bash 工具行（data-sample 钩子）',
+  haloCss.includes("bashRow: '[data-sample=bash]'") && chatText.includes('${SELECTORS.bashRow}'))
 
 // ══ 实况半 ════════════════════════════════════════════════════════════
 // 按内容筛而不是按文件名：capture/ 里还放着选择器体检抓样，
