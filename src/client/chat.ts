@@ -156,7 +156,7 @@ export function applyHalo(nodes: ChatNodes): void {
     .filter(el => el.style.display !== 'none')
     .map(el => el.getBoundingClientRect())
   // Think 块与工具行的文字在 span[hash]_summary 里，不含 markdown/bubble 任何子串，
-  // 所以前四项够不着它们。[data-disclosure-row] 是 DisclosureRow 给 Think 行、
+  // 所以前两项够不着它们。[data-disclosure-row] 是 DisclosureRow 给 Think 行、
   // 每个 ToolRow、GenericCommandCard、ContextInjectionRow 统一打的未哈希钩子，
   // 一项覆盖全部；该行 CSS 固定 height:24px;overflow:hidden;display:flex，
   // 结构上不可能退化成大容器，不存在「整片文字被描边」的过度命中。
@@ -165,9 +165,18 @@ export function applyHalo(nodes: ChatNodes): void {
   // 就会把 position:fixed 的提示条拽进普通流，引起布局位移、锚点移动、
   // 于是 hover 反复进出，表现为提示条高速频闪。CSS 那边的同名规则已限定，
   // 这份 JS 候选集当时漏了。
+  //
+  // 输出块一律同等待遇：段落之外还有表格单元、列表项、标题、引用与代码块。
+  // 此前只数 p——表格（td/th）与 Bash 命令卡展开后的输出正文都不在命中集里，
+  // 深色下压到角色上就没有可读性兜底。展开的 Think / 命令正文是
+  // data-disclosure-row 的相邻兄弟（pre=命令卡输出，div=Think 正文），
+  // 一并纳入；候选集里的重复命中无害，text-shadow 落在最内层，不会叠加。
   const blocks = document.querySelectorAll<HTMLElement>(
-    '[class*=markdown] p, [class*=Markdown] p, div[class*=bubble], div[class*=Bubble],'
-    + `${SELECTORS.disclosureRow}`,
+    '[class*=markdown] :is(p, td, th, li, h1, h2, h3, h4, h5, h6, blockquote, pre),'
+    + '[class*=Markdown] :is(p, td, th, li, h1, h2, h3, h4, h5, h6, blockquote, pre),'
+    + 'div[class*=bubble], div[class*=Bubble],'
+    + `${SELECTORS.disclosureRow},`
+    + `${SELECTORS.disclosureRow} + pre, ${SELECTORS.disclosureRow} + div`,
   )
   for (const block of blocks) {
     const r = block.getBoundingClientRect()
