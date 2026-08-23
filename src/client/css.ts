@@ -27,8 +27,15 @@
  * verify-4q 的选择器体检会拦下 hash 前缀。
  */
 export const SELECTORS = {
-  /** 品牌区（左上角字标）。app 里 `_brand` 只此一家。 */
-  brand: '[class*=_brand]',
+  /**
+   * 品牌区（左上角字标）。
+   *
+   * 0.1.1-rc.2 起 app 把品牌拆成 _brand / _brandIdentity / _brandMark /
+   * _brandName 四层，类名均含 `_brand` 子串；裸宽匹配会把合照背景贴到全部
+   * 四层（用户视角即「4 个图标」）。收窄到 logoRow 的直接子级，只命中按钮层；
+   * 旧版（≤ 0.1.0-rc.6）品牌本来就是 logoRow 的直接子元素，此选择器同样成立。
+   */
+  brand: '[class*=logoRow] > [class*=_brand]',
   /** 品牌区所在行，默认 overflow:hidden。 */
   logoRow: '[class*=logoRow]',
   /** 侧栏列。 */
@@ -139,7 +146,16 @@ ${SELECTORS.brand} {
   overflow: visible !important;
   filter: var(--joi-logo-rim);
 }
-${SELECTORS.brand} svg { overflow: visible !important; transform: translateX(-27px); }
+/* 字标整体右移 15px：合照内容（die-cut 贴纸）右缘实测约 x=97，字标 'd' 原在
+   x≈96 与其相擦（用户反馈"叠到一块儿"）。-12px 后 'd' 落 x≈111，留出约 14px
+   干净间距；徽章右缘 217→232，仍在 logoRow（宽 256）内。 */
+${SELECTORS.brand} svg { overflow: visible !important; transform: translateX(-12px); }
+
+/* ③b  双人合照替代鲸鱼图标：0.1.1-rc.2 把鲸鱼图标移进独立 slot
+       （sidebar.brand.mark），它原本坐在合照的位置上，不藏掉会和照片叠成一团。
+       旧版（≤ 0.1.0-rc.6）没有该 slot，鲸鱼字符在字标 svg 内由 brandSurgery
+       隐藏，此规则对旧结构天然不生效。 */
+[data-slot="sidebar.brand.mark"] { display: none !important; }
 
 /* ④  底纹没有可贴的表面 —— 见下面 textureRules 与 paintTexture。 */
 
