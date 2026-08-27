@@ -27,8 +27,20 @@
  * verify-4q 的选择器体检会拦下 hash 前缀。
  */
 export const SELECTORS = {
-  /** 品牌区（左上角字标）。app 里 `_brand` 只此一家。 */
-  brand: '[class*=_brand]',
+  /**
+   * 品牌区（左上角字标按钮）。
+   *
+   * 不能裸匹配 [class*=_brand]：当前 app 里品牌拆件 brandIdentity /
+   * brandMark / brandName 与品牌按钮共用同一前缀，裸匹配会把拆件也套上
+   * 同一条 sprite 背景与按钮的左内距，导致立绘 sprite 多处平铺、词标拆件
+   * 被推出按钮、横漂进对话页头部——实测的布局冲突即源于此。
+   * 排除三个拆件后，规则只落在品牌按钮上。
+   */
+  brand: '[class*=_brand]:not([class*=_brandIdentity]):not([class*=_brandMark]):not([class*=_brandName])',
+  /** 字标拆件：鲸鱼标记。当前 app 里是独立 svg（旧版打包在整张字标 svg 里）。 */
+  brandMark: '[class*=_brandMark]',
+  /** 字标拆件：deepseek 字标 svg（当前 app 的形态；旧版是含鲸鱼的一整张）。 */
+  brandName: '[class*=_brandName]',
   /** 品牌区所在行，默认 overflow:hidden。 */
   logoRow: '[class*=logoRow]',
   /** 侧栏列。 */
@@ -139,7 +151,11 @@ ${SELECTORS.brand} {
   overflow: visible !important;
   filter: var(--joi-logo-rim);
 }
-${SELECTORS.brand} svg { overflow: visible !important; transform: translateX(-27px); }
+/* 平移只施加于字标 svg（当前 app 拆成 mark/name 两份，旧版是 mark 里的一整张）：
+   直接 [class*=_brand] svg 会把 brandMark 里的独立鲸鱼标记也平移走——
+   它是独立元素、不随手术隐藏，一平移就横漂到 duo 立绘上。 */
+${SELECTORS.brandName} svg,
+${SELECTORS.brandMark} svg { overflow: visible !important; transform: translateX(-27px); }
 
 /* ④  底纹没有可贴的表面 —— 见下面 textureRules 与 paintTexture。 */
 

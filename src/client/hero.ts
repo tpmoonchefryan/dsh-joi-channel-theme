@@ -231,7 +231,12 @@ function hide(nodes: HeroNodes): void {
  * @returns 是否完成了手术（false 表示 SVG 还没渲染出来，下一帧再试）。
  */
 export function brandSurgery(): boolean {
-  const svg = document.querySelector(`${SELECTORS.brand} svg`)
+  // 布局格式随 app 版本变过：旧版是整张 viewBox 0 0 182 24 的 SVG
+  // （鲸鱼 + deepseek + HARNESS 徽章全在一张里）；当前版拆成两张——
+  // brandMark 里是鲸鱼标记，brandName 里是 deepseek 字标 svg。
+  // 手术对象取字标 svg：新版用 brandName 那张，旧版回退到原逻辑。
+  const nameSvg = document.querySelector(`${SELECTORS.brandName} svg`)
+  const svg = nameSvg ?? document.querySelector(`${SELECTORS.brand} svg`)
   if (svg === null) return false
   if (svg.getAttribute('data-joi-done') === '1') return true
 
@@ -252,11 +257,21 @@ export function brandSurgery(): boolean {
   const letters = boxed.filter(b => b.x > 128).map(b => b.p)
   if (letters.length === 0) return false // 尚未布局，等下一帧
 
-  const whaleGlyph = boxed[0]?.p
-  if (whaleGlyph !== undefined) {
-    hiddenGlyphs.add(whaleGlyph)
-    whaleGlyph.style.display = 'none'
+  // 鲸鱼字符隐藏。当前版有两只：brandMark 里的独立鲸鱼标记 svg，
+  // 以及字标 svg 内嵌（clip-path 引用、被 overflow:visible 放出 viewBox）的
+  // 鲸鱼 path；两者都要藏。旧版只有合并 svg 里最左的那条 path。
+  // 只用 x < 25 认鲸鱼：新版字标 svg 的最左 path 是字母 d（x≈27），
+  // 拿旧逻辑藏它会把 "deepseek" 变成 "eepseek"。
+  const markSvg = nameSvg !== null
+    ? document.querySelector(`${SELECTORS.brandMark} svg`)
+    : null
+  const suppress = (glyph: Element | null | undefined): void => {
+    if (glyph === null || glyph === undefined) return
+    hiddenGlyphs.add(glyph)
+    glyph.style.display = 'none'
   }
+  suppress(markSvg)
+  if (boxed[0] !== undefined && boxed[0].x < 25) suppress(boxed[0].p)
 
   const [dx, dy] = GEOMETRY.brandLockup.svgSurgery.shift
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
@@ -267,6 +282,7 @@ export function brandSurgery(): boolean {
   svg.append(g)
   moved.add(g)
   svg.setAttribute('data-joi-done', '1')
+  brandedSvg = svg
   return true
 }
 
@@ -276,6 +292,8 @@ const origin = new Map<Element, { parent: ParentNode, next: ChildNode | null }>(
 const moved = new Set<Element>()
 /** 被藏起来的原生字符，还原时取消隐藏。 */
 const hiddenGlyphs = new Set<SVGElement>()
+/** 接受手术的那张 svg（当前版是 brandName 的字标 svg；旧版是合并字标 svg）。 */
+let brandedSvg: SVGElement | null = null
 
 /**
  * 撤销字标手术，把 SVG 还原成 app 渲染时的样子。
@@ -299,5 +317,9 @@ export function undoBrandSurgery(): void {
   moved.clear()
   for (const glyph of hiddenGlyphs) glyph.style.removeProperty('display')
   hiddenGlyphs.clear()
-  document.querySelector(`${SELECTORS.brand} svg`)?.removeAttribute('data-joi-done')
+  // done 标记落在手术对象那张 svg 上（当前版是 brandName 的字标 svg，
+  // 旧版是合并字标 svg）；按 `[class*=_brand] svg` 删会在新版删到鲸鱼标记那张，
+  // done 标记留在字标 svg 上，下次手术被判定为「已完成」而直接跳过。
+  brandedSvg?.removeAttribute('data-joi-done')
+  brandedSvg = null
 }
