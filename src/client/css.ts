@@ -145,8 +145,8 @@ ${SELECTORS.brand} {
   background-image: var(--joi-brand-logo) !important;
   background-position: left center !important;
   background-repeat: no-repeat !important;
-  background-size: auto 46px !important;
-  padding-left: 98px !important;
+  background-size: auto 36px !important;
+  padding-left: 118px !important;
   min-height: 54px !important;
   overflow: visible !important;
   filter: var(--joi-logo-rim);
