@@ -1,7 +1,7 @@
 {
   "name": "dsh-joi-channel-theme",
-  "version": "0.1.10",
-  "description": "轴伊 Joi 双衣装主题（Joi-Flowers / Joi-Library）for DeepSeek Harness — unofficial, non-commercial fan theme plugin",
+  "version": "0.1.11",
+  "description": "轴伊 Joi 双衣装主题（Joi-Flowers / Joi-Library）for DeepSeek Harness — unofficial, non-commercial fan theme plugin（0.1.11 兼容 dsh 0.1.2-alpha 线：宿主内联 settingsNamespace、客户端内联 defineStore，不再依赖已删除的 @deepseek-ai/dsh-client-runtime 包）",
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -74,7 +74,7 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-settings": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-settings": "^0.1.0-rc.6 || ^0.1.2-alpha.2",
     "@deepseek-ai/schemastery": "^3.18.1-rc.1",
     "react": "^18.2.0"
   },

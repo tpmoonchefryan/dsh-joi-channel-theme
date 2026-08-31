@@ -11,6 +11,11 @@
  * 外部化名单只能是模块表里真有的那些。表里没有的 require 一定在运行时抛错，
  * 所以规则是「表内外部化，其余全部内联」——本包除 react 外无运行时依赖，
  * 跨插件协作一律走 cordis 服务（ctx.theme / ctx.slots / ctx.settingsScope）。
+ *
+ * 0.1.12 起移除原「临时豁免」项 `@deepseek-ai/dsh-client-runtime/client`：
+ * dsh 0.1.2-alpha 线已删除该包，模块表不再注册其工厂，require 必然
+ * 「missed the module table」。defineStore 已内联进 src/client/suit-row-store.ts
+ * （见 issue #4），本名单不再需要它。
  */
 import type { UserConfig } from 'tsdown'
 
@@ -22,10 +27,6 @@ const PLATFORM_MODULES = [
   '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-attachment',
   '@deepseek-ai/dsh-client-schema-form',
-  // 文档化的临时豁免：快照 store 引擎（defineStore 等）暂居 runtime，
-  // 尚未升格为平台模块，但 runtime 是 immediately 层行，其工厂在任何依赖
-  // bundle 物化之前就已注册，模块表答得上这个 require。
-  '@deepseek-ai/dsh-client-runtime/client',
 ]
 
 const ID = 'dsh-joi-channel-theme'
