@@ -1,0 +1,80 @@
+name: PR Bot Report
+
+on:
+  workflow_run:
+    workflows: [PR Bot Checks]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+jobs:
+  report:
+    if: ${{ github.event.workflow_run.event == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Update PR report
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const run = context.payload.workflow_run
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+
+            let pullRequest = Array.isArray(run.pull_requests)
+              ? run.pull_requests.find((item) => item.base?.repo?.full_name === `${owner}/${repo}`)
+              : undefined
+
+            if (!pullRequest) {
+              const associated = await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                { owner, repo, commit_sha: run.head_sha, per_page: 100 },
+              )
+              pullRequest = associated.find((item) => item.base?.repo?.full_name === `${owner}/${repo}`)
+            }
+
+            if (!pullRequest) {
+              core.info(`No pull request is associated with workflow run ${run.id}; no report posted.`)
+              return
+            }
+
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRun,
+              { owner, repo, run_id: run.id, per_page: 100 },
+            )
+            const failedJobs = jobs.filter((job) => !['success', 'skipped', 'neutral'].includes(job.conclusion))
+            const status = run.conclusion === 'success' ? '✅' : '❌'
+            const lines = [
+              '<!-- pr-bot-report -->',
+              '## PR Bot',
+              `${status} **${run.conclusion ?? 'unknown'}** for commit \`${run.head_sha.slice(0, 12)}\`.`,
+              `[View the workflow run](${run.html_url})`,
+            ]
+
+            if (failedJobs.length > 0) {
+              lines.push('', 'Failed jobs:')
+              for (const job of failedJobs) {
+                const failedSteps = (job.steps ?? [])
+                  .filter((step) => !['success', 'skipped', 'neutral'].includes(step.conclusion))
+                  .map((step) => `\`${step.name}\``)
+                const detail = failedSteps.length > 0 ? ` — ${failedSteps.join(', ')}` : ''
+                lines.push(`- \`${job.name}\`: ${job.conclusion}${detail} ([details](${job.html_url}))`)
+              }
+            } else if (run.conclusion === 'success') {
+              lines.push('', 'All automated checks passed. Human review is still required before merge.')
+            }
+
+            const body = lines.join('\n')
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number: pullRequest.number, per_page: 100 },
+            )
+            const previous = comments.find((comment) => comment.body?.includes('<!-- pr-bot-report -->'))
+            if (previous) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: previous.id, body })
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: pullRequest.number, body })
+            }

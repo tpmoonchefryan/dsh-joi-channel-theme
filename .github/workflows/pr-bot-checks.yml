@@ -1,0 +1,73 @@
+name: PR Bot Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-bot-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify plugin
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Type check
+        run: ./node_modules/.bin/tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify generated output and four quadrants
+        run: npm run verify
+
+      - name: Verify storefront screenshot manifest
+        run: node scripts/verify-screenshots-manifest.mjs screenshots.json
+
+      - name: Reject conflict markers
+        run: |
+          if git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- .; then
+            echo 'Conflict markers found in the checked-out tree.'
+            exit 1
+          fi
+
+      - name: Verify package contents
+        run: |
+          npm pack --dry-run --json > "$RUNNER_TEMP/npm-pack.json"
+          node - "$RUNNER_TEMP/npm-pack.json" <<'NODE'
+          import { readFileSync } from 'node:fs'
+
+          const result = JSON.parse(readFileSync(process.argv[2], 'utf8'))[0]
+          const names = new Set(result.files.map((file) => file.path))
+          for (const required of ['package.json', 'lib/index.js', 'lib/client.js', 'cordis.patch.yml']) {
+            if (!names.has(required)) throw new Error(`package is missing ${required}`)
+          }
+          for (const name of names) {
+            if (name.startsWith('.git/') || name.startsWith('node_modules/')) {
+              throw new Error(`package contains forbidden path ${name}`)
+            }
+          }
+          console.log(JSON.stringify({ id: result.id, files: result.entryCount }))
+          NODE
