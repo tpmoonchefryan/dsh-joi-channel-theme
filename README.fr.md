@@ -302,7 +302,7 @@ Le script de régression vérifie les quatre quadrants contre la même base
 | Surcouche de jetons | par tenue : rampe neutre 19 crans + 44 alias sémantiques + 9 jetons de syntaxe, clair & sombre |
 | Ressources personnages | Joi 2×2 ×2 tenues · Zhouxin 2×2 · Whale Musume couchée/debout · mini-baleines 1×3 |
 | Ressources embarquées | 10 data URI WebP, 2,4 Mo au total, zéro requête externe (compatible CSP) |
-| Compatibilité | DeepSeek Harness web `0.1.0-rc.5+` |
+| Compatibilité | DeepSeek Harness web `0.1.0-rc.5+` (incl. le découpage en quatre couches de la marque en `0.1.1-rc.2`) |
 | Pour aller plus loin | [Doc de développement](./docs/DEVELOPMENT.md) |
 
 <details>

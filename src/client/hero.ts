@@ -231,7 +231,13 @@ function hide(nodes: HeroNodes): void {
  * @returns 是否完成了手术（false 表示 SVG 还没渲染出来，下一帧再试）。
  */
 export function brandSurgery(): boolean {
-  const svg = document.querySelector(`${SELECTORS.brand} svg`)
+  // 0.1.1-rc.2 把深色字标移进独立 slot（sidebar.brand.name），鲸鱼图标另立
+  // slot（sidebar.brand.mark，由 CSS 隐藏）。名字 svg 与旧版单 svg 的字母
+  // 坐标一致（HARNESS x 132.8–178.4），仅 viewBox 裁掉了鲸鱼段（起点 26）。
+  const isNew = document.querySelector('[data-slot="sidebar.brand.name"] svg') !== null
+  const svg = isNew
+    ? document.querySelector('[data-slot="sidebar.brand.name"] svg')
+    : document.querySelector(`${SELECTORS.brand} svg`)
   if (svg === null) return false
   if (svg.getAttribute('data-joi-done') === '1') return true
 
@@ -252,17 +258,25 @@ export function brandSurgery(): boolean {
   const letters = boxed.filter(b => b.x > 128).map(b => b.p)
   if (letters.length === 0) return false // 尚未布局，等下一帧
 
+  // 旧结构（≤ 0.1.0-rc.6）的鲸鱼字符在字标 svg 内（x<26），隐藏之；
+  // 新结构里该 x 段只是被 viewBox 裁掉的残留，隐藏与否都不可见，规则统一。
   const whaleGlyph = boxed[0]?.p
-  if (whaleGlyph !== undefined) {
+  if (whaleGlyph !== undefined && whaleGlyph.getBBox().x < 26) {
     hiddenGlyphs.add(whaleGlyph)
     whaleGlyph.style.display = 'none'
   }
 
-  const [dx, dy] = GEOMETRY.brandLockup.svgSurgery.shift
+  // dx 新旧共用：HARNESS 字母 x 两版一致，H 132.8→99 对齐 e99（"ek" 的 e）。
+  // dy：旧版 [-20] 是 rc.6 坐标下的调校值；新版徽章内联 y 8.8–16.3，
+  // 第二行目标 y≈24.8（压在 deepseek 底线 18.6 之下约 6px），故 +16。
+  const [dx, dy] = isNew
+    ? [GEOMETRY.brandLockup.svgSurgery.shift[0], 16]
+    : GEOMETRY.brandLockup.svgSurgery.shift
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   g.setAttribute('transform', `translate(${dx},${dy})`)
-  const plate = svg.querySelector('rect')
-  if (plate !== null) { remember(plate); g.append(plate) } // 原生徽章底板，保持在字母之下
+  // 徽章底板取 x>128 的矩形；新版 svg 里另有两个 x≈0 的白色裁剪矩形，不能动。
+  const plate = [...svg.querySelectorAll('rect')].find(r => r.getBBox().x > 128)
+  if (plate != null) { remember(plate); g.append(plate) } // 原生徽章底板，保持在字母之下
   for (const letter of letters) { remember(letter); g.append(letter) }
   svg.append(g)
   moved.add(g)
@@ -299,5 +313,7 @@ export function undoBrandSurgery(): void {
   moved.clear()
   for (const glyph of hiddenGlyphs) glyph.style.removeProperty('display')
   hiddenGlyphs.clear()
-  document.querySelector(`${SELECTORS.brand} svg`)?.removeAttribute('data-joi-done')
+  for (const s of document.querySelectorAll(
+    '[data-slot="sidebar.brand.name"] svg, [class*=logoRow] > [class*=_brand] svg',
+  )) s.removeAttribute('data-joi-done')
 }

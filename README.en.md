@@ -288,7 +288,7 @@ asserts all four quadrants against the same baseline (283 checks must pass).
 | Token overlay | per suit: 19-step neutral ramp + 44 semantic aliases + 9 syntax tokens, light & dark |
 | Character assets | Joi 2×2 ×2 suits · Zhouxin 2×2 · Whale Musume lying/standing · mini whales 1×3 |
 | Inlined assets | 10 WebP data URIs, 2.4 MB total, zero external requests (CSP-friendly) |
-| Compatibility | DeepSeek Harness web `0.1.0-rc.5+` |
+| Compatibility | DeepSeek Harness web `0.1.0-rc.5+` (incl. the `0.1.1-rc.2` four-layer brand split) |
 | Deep dive | [Development doc](./docs/DEVELOPMENT.md) |
 
 <details>
