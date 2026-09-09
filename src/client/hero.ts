@@ -231,13 +231,14 @@ function hide(nodes: HeroNodes): void {
  * @returns 是否完成了手术（false 表示 SVG 还没渲染出来，下一帧再试）。
  */
 export function brandSurgery(): boolean {
-  // 0.1.1-rc.2 把深色字标移进独立 slot（sidebar.brand.name），鲸鱼图标另立
-  // slot（sidebar.brand.mark，由 CSS 隐藏）。名字 svg 与旧版单 svg 的字母
-  // 坐标一致（HARNESS x 132.8–178.4），仅 viewBox 裁掉了鲸鱼段（起点 26）。
-  const isNew = document.querySelector('[data-slot="sidebar.brand.name"] svg') !== null
-  const svg = isNew
-    ? document.querySelector('[data-slot="sidebar.brand.name"] svg')
-    : document.querySelector(`${SELECTORS.brand} svg`)
+  // 新版把字标拆到 sidebar.brand.name，且部分宿主只保留 CSS module 类名；
+  // 旧版仍把鲸鱼、deepseek 与 HARNESS 放在品牌按钮的一张 SVG 中。
+  const brand = document.querySelector(SELECTORS.brand)
+  if (brand === null) return false
+  const nameSvg = brand.querySelector<SVGElement>(
+    '[data-slot="sidebar.brand.name"] svg, [class*=_brandName] svg',
+  )
+  const svg = nameSvg ?? brand.querySelector<SVGElement>('svg')
   if (svg === null) return false
   if (svg.getAttribute('data-joi-done') === '1') return true
 
@@ -258,29 +259,33 @@ export function brandSurgery(): boolean {
   const letters = boxed.filter(b => b.x > 128).map(b => b.p)
   if (letters.length === 0) return false // 尚未布局，等下一帧
 
-  // 旧结构（≤ 0.1.0-rc.6）的鲸鱼字符在字标 svg 内（x<26），隐藏之；
-  // 新结构里该 x 段只是被 viewBox 裁掉的残留，隐藏与否都不可见，规则统一。
-  const whaleGlyph = boxed[0]?.p
-  if (whaleGlyph !== undefined && whaleGlyph.getBBox().x < 26) {
-    hiddenGlyphs.add(whaleGlyph)
-    whaleGlyph.style.display = 'none'
+  // 新版的鲸鱼是独立 brandMark SVG；旧版则是合并 SVG 中 x<25 的 path。
+  // class-only 结构没有 data-slot，因此同时按稳定的 local 类名识别。
+  const markSvg = nameSvg !== null
+    ? brand.querySelector<SVGElement>('[data-slot="sidebar.brand.mark"] svg, [class*=_brandMark] svg')
+    : null
+  const suppress = (glyph: SVGElement | null | undefined): void => {
+    if (glyph === null || glyph === undefined) return
+    hiddenGlyphs.add(glyph)
+    glyph.style.display = 'none'
   }
+  suppress(markSvg)
+  if (boxed[0] !== undefined && boxed[0].x < 25) suppress(boxed[0].p)
 
-  // dx 新旧共用：HARNESS 字母 x 两版一致，H 132.8→99 对齐 e99（"ek" 的 e）。
-  // dy：旧版 [-20] 是 rc.6 坐标下的调校值；新版徽章内联 y 8.8–16.3，
-  // 第二行目标 y≈24.8（压在 deepseek 底线 18.6 之下约 6px），故 +16。
-  const [dx, dy] = isNew
+  // Main 的旧版位移是视觉规格；拆分字标的徽章仍来自同一坐标系，沿用该规格。
+  const [dx, dy] = nameSvg !== null
     ? [GEOMETRY.brandLockup.svgSurgery.shift[0], 16]
     : GEOMETRY.brandLockup.svgSurgery.shift
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   g.setAttribute('transform', `translate(${dx},${dy})`)
-  // 徽章底板取 x>128 的矩形；新版 svg 里另有两个 x≈0 的白色裁剪矩形，不能动。
+  // 仅移动 HARNESS 底板；split SVG 还包含 x≈0 的裁剪矩形。
   const plate = [...svg.querySelectorAll('rect')].find(r => r.getBBox().x > 128)
-  if (plate != null) { remember(plate); g.append(plate) } // 原生徽章底板，保持在字母之下
+  if (plate !== undefined) { remember(plate); g.append(plate) } // 原生徽章底板，保持在字母之下
   for (const letter of letters) { remember(letter); g.append(letter) }
   svg.append(g)
   moved.add(g)
   svg.setAttribute('data-joi-done', '1')
+  brandedSvgs.add(svg)
   return true
 }
 
@@ -290,6 +295,8 @@ const origin = new Map<Element, { parent: ParentNode, next: ChildNode | null }>(
 const moved = new Set<Element>()
 /** 被藏起来的原生字符，还原时取消隐藏。 */
 const hiddenGlyphs = new Set<SVGElement>()
+/** 接受手术的所有 SVG；宿主重渲染期间可能先后替换多张字标。 */
+const brandedSvgs = new Set<SVGElement>()
 
 /**
  * 撤销字标手术，把 SVG 还原成 app 渲染时的样子。
@@ -313,7 +320,9 @@ export function undoBrandSurgery(): void {
   moved.clear()
   for (const glyph of hiddenGlyphs) glyph.style.removeProperty('display')
   hiddenGlyphs.clear()
-  for (const s of document.querySelectorAll(
-    '[data-slot="sidebar.brand.name"] svg, [class*=logoRow] > [class*=_brand] svg',
-  )) s.removeAttribute('data-joi-done')
+  // done 标记落在手术对象那张 svg 上（当前版是 brandName 的字标 svg，
+  // 旧版是合并字标 svg）；按 `[class*=_brand] svg` 删会在新版删到鲸鱼标记那张，
+  // done 标记留在字标 svg 上，下次手术被判定为「已完成」而直接跳过。
+  for (const svg of brandedSvgs) svg.removeAttribute('data-joi-done')
+  brandedSvgs.clear()
 }
