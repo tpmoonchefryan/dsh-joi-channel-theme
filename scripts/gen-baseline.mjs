@@ -54,6 +54,7 @@ for (const suit of ['flowers', 'library']) {
 }
 
 const j = (v) => JSON.stringify(v, null, 2)
+mkdirSync(dirname(OUT), { recursive: true })
 writeFileSync(OUT, `/* 由 scripts/gen-baseline.mjs 从 design/baseline-4q.json 生成，请勿手改。 */
 
 /** 一套衣装在一种明暗下的语义色板。 */
@@ -87,7 +88,6 @@ export const RIPENESS = ${j(ripeness)} as const
 export const GEOMETRY = ${j(geometry)} as const
 `, 'utf8')
 
-mkdirSync(dirname(OUT), { recursive: true })
 // shiki 的九个 token 也要四象限齐全，缺一格就会有一个象限落回通用蓝绿粉紫。
 const shikiKeys = Object.keys(shiki.flowers.light)
 for (const suit of ['flowers', 'library']) {
