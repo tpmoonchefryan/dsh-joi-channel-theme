@@ -1,0 +1,516 @@
+{
+ "$comment": [
+  "Joi 双衣装主题 · 四象限实施基线。",
+  "所有数值均在真实运行的 dsh web (0.1.0-rc.5 构建) 上验证通过，",
+  "不是设计稿推演值。正式开发时以本文件为准，与 theme-design-pitch.html 同源。",
+  "生成于覆盖层 design/theme-overlay.js 的已验证状态。"
+ ],
+ "semanticSlots": {
+  "$comment": "设计稿第 3 节的七个语义槽，按 Joi 世界里的物件命名，不按色相。",
+  "橘 tangerine": "主行动 / 发送 / 上下文计量",
+  "瞳 gold": "高亮 / 焦点 / 选中",
+  "梅 plum": "Flowers 品牌主色（Library 不出现）",
+  "青 navy": "Library 品牌主色（Flowers 不出现）",
+  "绯 crimson": "危险 / 删除 / 错误",
+  "墨 ink": "正文 / 代码",
+  "鲸 whale": "模型 / 用量 / 子代理 —— 两套一致，不随换装"
+ },
+ "palette": {
+  "flowers": {
+   "light": {
+    "ground": "#FFFAF2",
+    "panel": "#FFFFFF",
+    "panel2": "#FDF2E4",
+    "sidebar": "#FDF6EC",
+    "ink": "#2C2028",
+    "ink2": "#6B5560",
+    "ink3": "#9C8792",
+    "line": "#EADCE2",
+    "line2": "#DBC7D0",
+    "brand": "#7B3B5C",
+    "brandSoft": "#F3E3EA",
+    "gold": "#FFCE65",
+    "goldInk": "#6B4A0E",
+    "tangerine": "#EE7F2D",
+    "crimson": "#A63A4B",
+    "petal": "#F0B4C4",
+    "whale": "#3F51B5",
+    "bubble": "#FFCE65",
+    "bubbleInk": "#6B4A0E",
+    "texA1": "50%",
+    "texA2": "42%"
+   },
+   "dark": {
+    "ground": "#191216",
+    "panel": "#221A20",
+    "panel2": "#2B2028",
+    "sidebar": "#221A20",
+    "ink": "#F4E9EE",
+    "ink2": "#C3AAB6",
+    "ink3": "#937986",
+    "line": "#362A31",
+    "line2": "#4A3941",
+    "brand": "#D68CB0",
+    "brandSoft": "#3A2632",
+    "gold": "#FFCE65",
+    "goldInk": "#2A1D06",
+    "tangerine": "#F5A05C",
+    "crimson": "#E2717F",
+    "petal": "#D98BA3",
+    "whale": "#8C9BEA",
+    "bubble": "#FFCE65",
+    "bubbleInk": "#2A1D06",
+    "texA1": "20%",
+    "texA2": "15%"
+   }
+  },
+  "library": {
+   "$comment": "金色配额：Library 无大面积权限。气泡改灰底，金降为 #D9A63C 暗金。",
+   "light": {
+    "ground": "#FAFBFC",
+    "panel": "#FFFFFF",
+    "panel2": "#F1F3F6",
+    "sidebar": "#F1F3F6",
+    "ink": "#22252A",
+    "ink2": "#5C6470",
+    "ink3": "#8B95A3",
+    "line": "#E2E6EB",
+    "line2": "#CDD3DB",
+    "brand": "#3E4E6B",
+    "brandSoft": "#E7EBF1",
+    "gold": "#D9A63C",
+    "goldInk": "#4A360C",
+    "tangerine": "#C96A2A",
+    "crimson": "#9E4450",
+    "petal": "#B9C2D0",
+    "whale": "#3F51B5",
+    "bubble": "#F1F3F6",
+    "bubbleInk": "#22252A",
+    "texA1": "62%"
+   },
+   "dark": {
+    "ground": "#15171B",
+    "panel": "#1D2026",
+    "panel2": "#24282F",
+    "sidebar": "#1D2026",
+    "ink": "#E7EAEF",
+    "ink2": "#A7B1C0",
+    "ink3": "#79838F",
+    "line": "#2A2E35",
+    "line2": "#3A4049",
+    "brand": "#8FA6D4",
+    "brandSoft": "#232A38",
+    "gold": "#E8C070",
+    "goldInk": "#241A05",
+    "tangerine": "#DE8850",
+    "crimson": "#D4737F",
+    "petal": "#6E7A8C",
+    "whale": "#8C9BEA",
+    "bubble": "#24282F",
+    "bubbleInk": "#E7EAEF",
+    "texA1": "62%"
+   }
+  }
+ },
+ "tokenMap": {
+  "$comment": "语义色 → 真实 --dsw-* token。共 44 条，覆盖 app 全部大面积表面与文字。",
+  "--dsw-alias-bg-base": "ground",
+  "--dsw-alias-bg-layer-1": "panel",
+  "--dsw-alias-bg-layer-2": "panel2",
+  "--dsw-alias-bg-layer-3": "panel",
+  "--dsw-alias-bg-overlay": "panel",
+  "--dsw-alias-bg-module-platform": "panel2",
+  "--dsw-specific-sidebar-fill": "sidebar",
+  "--dsw-specific-menu": "panel",
+  "--dsw-specific-input-major": "panel",
+  "--dsw-specific-login-input": "panel",
+  "--dsw-specific-bubble": "bubble",
+  "--dsw-specific-bubble-highlight": "gold",
+  "--dsw-specific-selector": "panel2",
+  "--dsw-specific-tip": "panel2",
+  "--dsw-specific-sidebar-nav-item-active": "brandSoft",
+  "--dsw-specific-sidebar-nav-item-active-accent": "gold",
+  "--dsw-specific-sidebar-nav-item-hover": "panel2",
+  "--dsw-alias-button-elevated-fill": "panel",
+  "--dsw-alias-button-floating-fill": "panel",
+  "--dsw-alias-button-floating-hover": "panel2",
+  "--dsw-alias-button-contrast-fill": "ink",
+  "--dsw-alias-label-primary": "ink",
+  "--dsw-alias-label-secondary": "ink2",
+  "--dsw-alias-label-tertiary": "ink3",
+  "--dsw-alias-label-caption": "ink3",
+  "--dsw-alias-label-dimmed": "ink3",
+  "--dsw-alias-label-primary-bluish": "brand",
+  "--dsw-alias-border-l1": "line",
+  "--dsw-alias-border-l2": "line2",
+  "--dsw-alias-border-l3": "line2",
+  "--dsw-alias-brand-primary": "brand",
+  "--dsw-alias-brand-text": "brand",
+  "--dsw-alias-button-primary-fill": "tangerine",
+  "--dsw-alias-button-primary-hover": "tangerine",
+  "--dsw-alias-button-info-fill": "brandSoft",
+  "--dsw-alias-state-error-primary": "crimson",
+  "--dsw-alias-state-warn-primary": "gold",
+  "--dsw-alias-state-warn-label": "goldInk",
+  "--dsw-alias-state-business-primary": "whale",
+  "--dsw-alias-markdown-code-block": "panel2",
+  "--dsw-alias-markdown-inline-code": "panel2",
+  "--dsw-alias-markdown-code-block-banner": "panel2",
+  "--dsh-scrollbar-thumb": "tangerine",
+  "--dsh-scrollbar-thumb-hover": "brand"
+ },
+ "neutralRamp": {
+  "$comment": [
+   "底层中性色阶，兜住所有未列举的 token（包括尚未见过的组件）。",
+   "该色阶在 design-platform.css 里只于 body{} 定义一次，明暗两套 alias",
+   "各自引用其中不同级数，所以覆盖一次色阶 = 明暗双向同时生效。"
+  ],
+  "steps": [
+   "00",
+   "50",
+   "60",
+   "75",
+   "100",
+   "150",
+   "200",
+   "300",
+   "400",
+   "500",
+   "600",
+   "700",
+   "750",
+   "800",
+   "850",
+   "875",
+   "900",
+   "950",
+   "1000"
+  ],
+  "prefix": "--dsw-static-neutral-bluish-",
+  "flowers": [
+   "#FFFFFF",
+   "#FBF9FA",
+   "#FBF9FA",
+   "#F5F1F2",
+   "#F2EBEE",
+   "#F2E9EC",
+   "#EEE1E6",
+   "#D6CFD1",
+   "#BBAAB0",
+   "#AB929B",
+   "#997482",
+   "#745862",
+   "#4E3F44",
+   "#3C3135",
+   "#31292C",
+   "#262123",
+   "#1D1A1B",
+   "#171516",
+   "#150F11"
+  ],
+  "library": [
+   "#FFFFFF",
+   "#F9FAFB",
+   "#F9FAFB",
+   "#F1F3F5",
+   "#EBEEF2",
+   "#E9EDF2",
+   "#E1E7EE",
+   "#CFD2D6",
+   "#ADB2B8",
+   "#979EA6",
+   "#80868D",
+   "#61666B",
+   "#43464A",
+   "#353638",
+   "#2C2D2E",
+   "#232324",
+   "#1B1B1C",
+   "#151617",
+   "#0F1215"
+  ]
+ },
+ "texture": {
+  "$comment": [
+   "两层必须共用同一瓦片尺寸。曾用 28px/38px，最小公倍数 532px，",
+   "两套点格互相漂移读成噪点（莫尔干涉）。同尺寸 + 瓦片内错位即可。",
+   "透明度按明暗分开：同一 alpha 打在近黑底上对比度约为浅底的 3 倍。"
+  ],
+  "flowers": {
+   "type": "点阵 · 对应衣料樱花印花",
+   "tile": "34px 34px, 34px 34px",
+   "layers": [
+    {
+     "at": "22% 28%",
+     "color": "petal",
+     "alpha": "texA1",
+     "r": "1.5px",
+     "edge": "1.7px"
+    },
+    {
+     "at": "70% 74%",
+     "color": "gold",
+     "alpha": "texA2",
+     "r": "1.1px",
+     "edge": "1.3px"
+    }
+   ]
+  },
+  "library": {
+   "type": "方格纸网格 · 对应裙面制图线",
+   "tile": "22px 22px, 22px 22px",
+   "layers": [
+    {
+     "dir": "to right",
+     "color": "line2",
+     "alpha": "texA1",
+     "w": "1px"
+    },
+    {
+     "dir": "to bottom",
+     "color": "line2",
+     "alpha": "texA1",
+     "w": "1px"
+    }
+   ]
+  }
+ },
+ "geometry": {
+  "$comment": "全部为实测值，参照视口 1520×960。",
+  "portrait": {
+   "asset": "New Chat - {Suit}.png",
+   "canvas": [
+    1086,
+    1448
+   ],
+   "aspect": 1.3333333,
+   "eyeAnchor": {
+    "$comment": "金瞳在各自画幅中的归一化坐标（PIL 实测）。两套衣装的脸在画幅里位置不同，靠这两组值把眼点锚到同一处；不做per-suit锚定则换装时头会跳 56×7 px。",
+    "flowers": [
+     0.359,
+     0.189
+    ],
+    "library": [
+     0.462,
+     0.199
+    ]
+   },
+   "width": 540,
+   "eyeRight": 168,
+   "eyeY": "运行时量取标题文字中线 —— hero 区垂直居中，随视口高度浮动，不可写死",
+   "mask": "linear-gradient(to bottom, #000 0%, #000 70%, transparent 96%)",
+   "rimLight": {
+    "light": "drop-shadow(0 0 1px rgba(70,80,100,.30)) drop-shadow(0 2px 10px rgba(70,80,100,.13))",
+    "dark": "drop-shadow(0 0 1px rgba(255,255,255,.16)) drop-shadow(0 0 22px rgba(0,0,0,.5))",
+    "why": "Library 的白开衫贴近白底会糊；深色下需压住底噪。"
+   },
+   "verified": {
+    "eyeDelta": "0px",
+    "portraitBottom": "959 / 视口 960"
+   }
+  },
+  "whaleMusume": {
+   "asset": "Kanban in Lay - Deepseek Whale Musume.png",
+   "canvas": [
+    1254,
+    1254
+   ],
+   "restLine": 0.842,
+   "clawLine": 0.9,
+   "anchor": 0.878,
+   "width": 184,
+   "anchorFormula": "爪尖落点 = 标题字顶 + 宽度 × (0.90 − anchor)；anchor 必须小于 0.90 才产生压入",
+   "alignTo": "「小鲸鱼 + 标题」合并跨度的水平中心（预览版徽章不计入）",
+   "contactShadow": {
+    "light": "drop-shadow(0 5px 4px rgba(56,42,52,.20))",
+    "dark": "drop-shadow(0 5px 5px rgba(0,0,0,.48))",
+    "why": "零遮挡会读成悬浮；4px 压入是唯一的深度线索，再多就啃到汉字顶横。"
+   },
+   "verified": {
+    "clawOverlap": "4px（字高的 11%）",
+    "restToTitleTop": "7px",
+    "centerOffset": "1px"
+   }
+  },
+  "brandLockup": {
+   "asset": "App Logo - {Suit}.png",
+   "canvas": [
+    1774,
+    887
+   ],
+   "renderHeight": "46px",
+   "align": "按原始画布对齐，绝不 trim —— 两图内容包围盒不等高（825 / 887），trim 后脸会错开 7%；按画布对齐则脸线差 0.9%，不可见。",
+   "svgSurgery": {
+    "$comment": "原生 SVG viewBox 0 0 182 24 的构成，由 getBBox 实测。",
+    "whaleGlyph": "x 0.1–23.3（单条 path，隐藏）",
+    "deepseek": "x 27–122，逐字母：d27 e39 e51 p63 s75 e87 e99 k111+115",
+    "harnessPlate": "x 129–181（<rect> 徽章底板）",
+    "harnessLetters": "x 132.8–178.4（七个字母）",
+    "shift": [
+     -33.8,
+     -20
+    ],
+    "why": "H 从 132.8 移到 99（\"ek\" 的 e）对齐；此时末尾 SS 探出 k 右缘约 23px。对齐 s 时 SS 反而收在 k 以内，视觉不平衡。"
+   },
+   "verified": {
+    "ekAlign": "H 与 e 同在 x=186",
+    "ssOverhang": "23px",
+    "badgeRight": "235 < 侧栏 280"
+   }
+  },
+  "accents": {
+   "sidebarStripe": "inset 3px 0 0 <brand>",
+   "activeSessionRow": "box-shadow: 0 0 0 2px <gold>（焦点环；原为左侧 inset 2px 标记，已改）",
+   "favicon": "🍊 SVG data URI",
+   "keyboardFocus": "选中环外再叠一圈 40% 透明外环，与选中态区分"
+  }
+ },
+ "structuralConflicts": {
+  "$comment": "五处 app 原生结构与主题的冲突。正式开发时会原样撞上，逐条已验证修法。",
+  "1_composerZIndex": {
+   "problem": "立绘横向压住 composer，盖掉模型选择器和发送键。",
+   "cause": "app 自身给 composerStack 设了 z-index:1，覆盖规则不加 !important 会被压过去。",
+   "fix": "composerStack / heroWorkspaceRow / KZiXvq_stack → position:relative!important; z-index:5!important；立绘 z-index:0。"
+  },
+  "2_logoRowClips": {
+   "problem": "HARNESS 上移成第二行后整个被裁掉。",
+   "cause": ".r91kyq_logoRow 默认 overflow:hidden，且高度不足。",
+   "fix": "logoRow → overflow:visible!important; min-height:74px!important; align-items:flex-end!important; padding-top:18px!important；sidebarCol 亦需 overflow:visible。"
+  },
+  "3_brandBackgroundShorthand": {
+   "problem": "双人 logo 不显示，位置却留出来了。",
+   "cause": "app 对 .r91kyq_brand 用了 background 简写，抹掉非 !important 的 background-image。",
+   "fix": "background-image / -position / -repeat / -size 全部加 !important。"
+  },
+  "4_textureHasNoSurface": {
+   "problem": "底纹贴在 body 上，计算样式查得到、屏幕上永远看不见。",
+   "cause": "AppFrame 与 ConversationRoot 都把 --dsw-alias-bg-base 画成不透明底色压在上面。",
+   "fix": "覆盖层权宜：运行时扫描大容器、比对 backgroundColor 是否等于底色再打标记（实测命中 2 个）。正式插件应提供 --dsh-bg-texture / --dsh-bg-texture-size 两个 token，由那两个组件消费——纹理属于底色的一部分，该同层绘制。",
+   "lesson": "token 覆盖只能改颜色，改不了绘制层级。"
+  },
+  "5_darkAttrOwnership": {
+   "problem": "外部设置 body[data-ds-dark-theme] 会被改回去，造成\"属性没了、深色 token 还在\"的白底浅字。",
+   "cause": "该属性归 ui-layout 的 presenter 所有。",
+   "fix": "不碰它。明暗交给 app 自己的外观设置，主题只叠加衣装色——这也正是 overrideTokens() 的设计分工。"
+  }
+ },
+ "nativeBehaviorToPreserve": {
+  "fishLogo": {
+   "$comment": "headline 是 grid-template-columns: 34px auto auto，第 1 列本来就留给原生小鲸鱼。鲸鱼娘改趴姿浮层后不再抢该槽位。",
+   "rule": ".fishHitbox:hover .fish { animation: hero-fish-swim ... }（纯 CSS 摆尾动效）",
+   "warning": "覆盖层不得改 .fish / .fishHitbox 的任何属性；鲸鱼娘必须 pointer-events:none 以免挡住热区。",
+   "autoThemed": ".fish { color: var(--dsw-alias-label-primary) } —— 自动跟随衣装，无需处理。"
+  }
+ },
+ "notImplemented": {
+  "$comment": "本基线只覆盖新会话页。以下为设计稿已定义但尚未落地的部分。",
+  "blockedOnAssets": [
+   "Mini Joi / Q 版四态表 ×2 → 推理行、终端角标、运行指示、完成态",
+   "轴芯四态表 → Toast、状态点、连接横幅、审批结果、错误页",
+   "两条状态机（过程态 / 结论态）",
+   "小鲸鱼 blob → subagent 群"
+  ],
+  "doableNow": [
+   "🍊 上下文计量用橘子瓣（设计稿标注\"最想保住的一处\"）",
+   "焦点环用金色",
+   "shiki.css 代码高亮两套（独立表，token 覆盖不到）",
+   "会话标签做成药丸 tab",
+   "输入栏上方\"细线 + 标语\"位",
+   "设置页措辞改成\"换装\""
+  ],
+  "pluginOnly": [
+   "选择态持久化（内置外观行只认 light/dark/system，需自有设置命名空间）",
+   "立绘内联成 data URI（插件 bundle 不能引外链，CSP 会拦）",
+   "两套注册成互斥 source（overrideTokens 是叠加层，同时在栈上会混色）"
+  ]
+ },
+ "shiki": {
+  "$comment": [
+   "shiki.css 不引用任何 alias token，色阶覆盖对它无效，必须直接覆写 --shiki-token-*。",
+   "constant 与 link 两套同值：数字/常量/链接是与人无关的客观事实，与鲸鱼同类，换装不变。",
+   "foreground/background 已 alias 到 label-primary / markdown-code-block，无需在此覆盖。"
+  ],
+  "flowers": {
+   "light": {
+    "keyword": "#7B3B5C",
+    "string": "#4A7C3F",
+    "constant": "#3F51B5",
+    "function": "#A63A4B",
+    "parameter": "#C4611F",
+    "comment": "#9C8792",
+    "punctuation": "#6B5560",
+    "string-expression": "#3F6B35",
+    "link": "#3F51B5"
+   },
+   "dark": {
+    "keyword": "#D68CB0",
+    "string": "#8FCB7A",
+    "constant": "#8C9BEA",
+    "function": "#E2717F",
+    "parameter": "#F5A05C",
+    "comment": "#937986",
+    "punctuation": "#C3AAB6",
+    "string-expression": "#A3D98F",
+    "link": "#8C9BEA"
+   }
+  },
+  "library": {
+   "light": {
+    "keyword": "#3E4E6B",
+    "string": "#3F7A46",
+    "constant": "#3F51B5",
+    "function": "#9E4450",
+    "parameter": "#B25A22",
+    "comment": "#8B95A3",
+    "punctuation": "#5C6470",
+    "string-expression": "#356B3C",
+    "link": "#3F51B5"
+   },
+   "dark": {
+    "keyword": "#8FA6D4",
+    "string": "#7FC98C",
+    "constant": "#8C9BEA",
+    "function": "#D4737F",
+    "parameter": "#DE8850",
+    "comment": "#79838F",
+    "punctuation": "#A7B1C0",
+    "string-expression": "#93D69E",
+    "link": "#8C9BEA"
+   }
+  }
+ },
+ "ripeness": {
+  "$comment": [
+   "ContextMeter 的 28px 环改成一颗会成熟的橘子。相邻档线性插值。",
+   "最后一档不另设警示色——熟过头本身就是警示。叶恒绿蒂恒褐：身份不随状态变。"
+  ],
+  "stops": [
+   [
+    0,
+    "#2E6B3A"
+   ],
+   [
+    25,
+    "#6FA84B"
+   ],
+   [
+    50,
+    "#D8CF5C"
+   ],
+   [
+    72,
+    "#F2B12E"
+   ],
+   [
+    90,
+    "#E4571F"
+   ],
+   [
+    100,
+    "#C43C10"
+   ]
+  ],
+  "leaf": "#4A7C3F",
+  "stem": "#6B4A2A"
+ }
+}
