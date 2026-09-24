@@ -56,7 +56,7 @@
     "build": "npm run gen && tsdown",
     "verify": "node scripts/verify-4q.mjs capture/*.json",
     "prepublishOnly": "npm run build && npm run verify",
-    "test:preferences": "node --experimental-strip-types --test tests/suit-preferences.test.mjs",
+    "test:preferences": "tsdown && node --experimental-strip-types --test tests/suit-preferences.test.mjs tests/client-entry-preferences.test.mjs",
     "verify:static": "node scripts/verify-4q.mjs"
   },
   "devDependencies": {

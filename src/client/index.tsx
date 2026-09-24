@@ -74,12 +74,6 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => () => { surfaces.dispose() }, 'joi-theme: 装饰层')
   ctx.effect(() => () => { suits.dispose() }, 'joi-theme: token 覆盖层')
 
-  // 设置文档可能在别处被改（多窗口、Host 侧写入）；回读时不再写回去。
-  ctx.effect(() => scope.subscribe(() => {
-    const stored = scope.getSnapshot().value?.suit
-    if (stored !== undefined && stored !== suits.skin) suits.setSuit(stored, false)
-  }), 'joi-theme: 设置回读')
-
   installSuitRow(ctx, suits)
 
   // 量测入口。回归脚本用它取几何读数，比截图比对稳定得多。
