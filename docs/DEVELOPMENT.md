@@ -66,6 +66,7 @@ npm ci --ignore-scripts && npm run build   # 与 CI 同一跑法
 npm run gen       # design/baseline-4q.json + stuff/ → src/generated/
 npm run build     # gen + tsdown（宿主 ESM + 浏览器闭包工厂）
 npm run verify    # 四象限回归（静态半）
+npm run test:preferences # Host ConfigForm 恢复、迁移与首读竞态回归
 ```
 
 ## 设计与基线
@@ -145,15 +146,13 @@ npm run verify    # 四象限回归（静态半）
 
 ## 已知限制
 
-1. **官方设置通道在 0.1.7-rc.1 上已经通了；localStorage 只是兜底。**
-   本插件两条通道都试，官方通道可用时优先，否则落 localStorage。
-   0.1.7-rc.1 实测：`settings.describe` 会把本插件的命名空间（`joi-channel-theme`，
-   即 loader entry id）连同 schema 与取值一起发给浏览器，`configForms` 的写入以
-   profile patch 的 `config:` 段落持久化；这条路径已在 0.1.7-rc.1 上实机验证。
-   旧版 dsh（≤ 0.1.5 线）宿主 apiproxy 有一份硬编码命名空间白名单
-   （`WEB_SETTINGS_NAMESPACES` / `PRODUCT_SETTINGS_NAMESPACES`），第三方段发不过去，
-   那时才落到 localStorage。兜底的后果：偏好绑在浏览器 origin 上，换浏览器或换机器
-   不跟随。当前实况可在 `#joi-theme-css[data-joi-metrics]` 的 `persistence` 字段看到。
+1. **宿主设置是偏好的正本，localStorage 用于旧值迁移和降级。**
+   `ConfigForm.value` 带 schema 默认值，不能据此判断用户是否选过衣装；恢复时看原始
+   `ConfigForm.user` 字段。旧版 `dsh-joi-channel-theme.suit` 中的合法选择会在 Host
+   表单 ready 且可写时迁移为用户设置。若用户在首读完成前选择衣装，该手势优先于
+   晚到的宿主快照，并在表单可写后写入。宿主表单不可用时 localStorage 仍保留本机
+   选择，受浏览器 origin 限制。当前通道实况可在
+   `#joi-theme-css[data-joi-metrics]` 的 `persistence` 字段看到。
 2. **首帧闪烁。** host 的引导脚本只认明暗三值，衣装到不了那一步，
    所以刷新后会先出现一帧未着衣装的界面。不 hack index 注入。
 3. **带 hash 的类名耦合。** `r91kyq_brand`、`KZiXvq_headline`、`PcWdmW_card` 等

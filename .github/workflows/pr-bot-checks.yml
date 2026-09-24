@@ -46,6 +46,9 @@ jobs:
       - name: Type check
         run: ./node_modules/.bin/tsc --noEmit
 
+      - name: Check Host preference migration and races
+        run: npm run test:preferences
+
       - name: Verify generated output and four quadrants
         run: npm run verify
 
