@@ -134,6 +134,7 @@ function memoryStorage(value) {
 function createEntry(scope) {
   const effects = []
   const rows = []
+  const rowState = { suit: undefined, preference: undefined }
   const theme = {
     layers: new Map(),
     overrideTokens(source, tokens) {
@@ -159,13 +160,18 @@ function createEntry(scope) {
     },
     on() {},
   })
+  function bindSettingsRow() {
+    const row = rows.find(({ registration }) => registration.id === 'appearance')?.registration
+    assert.ok(row, 'the client entry registers the Settings appearance row')
+    return row.inject({ sync(suit, preference) { Object.assign(rowState, { suit, preference }) } })
+  }
+
   return {
     theme,
+    rowState,
+    bindSettingsRow,
     chooseSuit(skin) {
-      const row = rows.find(({ registration }) => registration.id === 'appearance')?.registration
-      assert.ok(row, 'the client entry registers the Settings appearance row')
-      const injected = row.inject({ sync() {} })
-      injected.setSuit(skin)
+      bindSettingsRow().setSuit(skin)
     },
     dispose() { for (const effect of effects.reverse()) effect() },
   }
@@ -227,6 +233,40 @@ test('client entry keeps a legacy preference when the ready Host form is read-on
     assert.deepEqual(scope.writes, [])
   } finally {
     app.dispose()
+    restoreGlobals()
+  }
+})
+
+test('client entry accepts a later explicit Host choice after a local choice is acknowledged', async () => {
+  const restoreGlobals = installBrowserGlobals(memoryStorage())
+  const scope = new ConfigFormStub(readySnapshot())
+  const app = createEntry(scope)
+  let restarted
+  try {
+    app.chooseSuit('library')
+    assert.deepEqual(scope.writes, [['suit', 'library']])
+
+    scope.acceptNextWrite()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(scope.snapshot.user.suit, 'library')
+    assert.equal(app.rowState.suit, 'library')
+
+    const acknowledgedWrites = scope.writes.length
+    scope.publish(readySnapshot({ suit: 'native', user: { suit: 'native' }, revision: 3 }))
+
+    assert.equal(app.theme.layers.has('dsh-joi-channel-theme'), false)
+    assert.equal(app.rowState.suit, 'native')
+    assert.equal(scope.snapshot.user.suit, 'native')
+    assert.equal(scope.writes.length, acknowledgedWrites)
+
+    app.dispose()
+    restarted = createEntry(new ConfigFormStub(readySnapshot({ suit: 'native', user: { suit: 'native' } })))
+    assert.equal(restarted.theme.layers.has('dsh-joi-channel-theme'), false)
+    restarted.bindSettingsRow()
+    assert.equal(restarted.rowState.suit, 'native')
+  } finally {
+    app.dispose()
+    restarted?.dispose()
     restoreGlobals()
   }
 })

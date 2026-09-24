@@ -46,11 +46,14 @@ export class SuitRuntime {
   private readonly listeners = new Set<SuitListener>()
   /** 用户是否已明确选过。未选过就不写盘——首装不该在设置文档里留痕。 */
   private chosen = false
-  /** 用户手势优先于已在途的宿主读取。 */
-  private userSelected = false
+  /** 本地选择尚未被 Host 接收时，挡住更早的默认值或用户快照。 */
+  private pendingLocalSuit: Skin | undefined
   /** 宿主写入回包前按衣装去重。 */
   private readonly pendingHostWrites = new Set<Skin>()
+  /** 同一 Host revision 对同一衣装只尝试一次；新快照可触发一次有界重试。 */
+  private lastHostWriteAttempt: { suit: Skin, revision: number | undefined } | undefined
   private stopWatchingScope: (() => void) | undefined
+  private disposed = false
   /** 关掉主题前那套衣装。再打开时回到它，而不是粗暴地回到默认。 */
   private lastSuit: Suit = DEFAULT_SUIT
 
@@ -146,6 +149,7 @@ export class SuitRuntime {
    * 读回持久偏好并挂上对应衣装；无宿主/旧值时用默认衣装。
    */
   start(): void {
+    this.disposed = false
     const stored = this.read()
     if (stored !== undefined) {
       this.current = stored
@@ -164,13 +168,18 @@ export class SuitRuntime {
    * 宿主表单可写时，把旧 localStorage 偏好迁移到新表单。
    */
   private syncFromHost(): void {
+    if (this.disposed) return
     const snapshot = this.scope?.getSnapshot()
     if (snapshot?.status !== 'ready') return
 
     const explicit = this.explicitHostSuit()
-    if (this.userSelected) {
-      // 用户可能在宿主首读尚未完成时操作；保留新意图，并在表单可写后回写。
-      if (explicit !== this.current) this.writeHost(this.current)
+    if (this.pendingLocalSuit !== undefined) {
+      // 只保护还没被 Host 确认的本地操作。确认后，之后的显式 Host 变化可以接管。
+      if (explicit === this.pendingLocalSuit) {
+        this.pendingLocalSuit = undefined
+        return
+      }
+      this.writeHost(this.pendingLocalSuit)
       return
     }
 
@@ -193,8 +202,9 @@ export class SuitRuntime {
    */
   setSuit(suit: Skin, persist = true): void {
     if (persist) {
-      this.userSelected = true
       this.chosen = true
+      this.pendingLocalSuit = this.explicitHostSuit() === suit ? undefined : suit
+      this.lastHostWriteAttempt = undefined
     }
 
     if (suit === this.current && (this.chosen || !persist)) {
@@ -225,6 +235,7 @@ export class SuitRuntime {
 
   /** 卸载 token 层并清空订阅。disposer 幂等（HMR 下会被重复调用）。 */
   dispose(): void {
+    this.disposed = true
     this.stopWatchingScope?.()
     this.stopWatchingScope = undefined
     this.detach?.()
@@ -248,10 +259,16 @@ export class SuitRuntime {
   private writeHost(suit: Skin): void {
     const snapshot = this.scope?.getSnapshot()
     if (!this.scope || snapshot?.status !== 'ready' || !snapshot.writable || this.pendingHostWrites.has(suit)) return
+    if (this.explicitHostSuit() === suit) return
+    if (this.lastHostWriteAttempt?.suit === suit && this.lastHostWriteAttempt.revision === snapshot.revision) return
+    this.lastHostWriteAttempt = { suit, revision: snapshot.revision }
     this.pendingHostWrites.add(suit)
     void this.scope.set(SUIT_FIELD, suit)
       .catch(() => {})
-      .finally(() => { this.pendingHostWrites.delete(suit) })
+      .finally(() => {
+        this.pendingHostWrites.delete(suit)
+        this.syncFromHost()
+      })
   }
 
   private write(suit: Skin): void {

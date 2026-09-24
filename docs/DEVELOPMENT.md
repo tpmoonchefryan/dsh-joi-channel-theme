@@ -149,9 +149,10 @@ npm run test:preferences # Host ConfigForm 恢复、迁移与首读竞态回归
 1. **宿主设置是偏好的正本，localStorage 用于旧值迁移和降级。**
    `ConfigForm.value` 带 schema 默认值，不能据此判断用户是否选过衣装；恢复时看原始
    `ConfigForm.user` 字段。旧版 `dsh-joi-channel-theme.suit` 中的合法选择会在 Host
-   表单 ready 且可写时迁移为用户设置。若用户在首读完成前选择衣装，该手势优先于
-   晚到的宿主快照，并在表单可写后写入。宿主表单不可用时 localStorage 仍保留本机
-   选择，受浏览器 origin 限制。当前通道实况可在
+   表单 ready 且可写时迁移为用户设置。尚未被 Host 接收的本地选择优先于迟到快照，
+   并在可写时写入；Host 回读确认后，后续显式 Host 变化会接管衣装。相同 Host revision
+   对同一衣装最多尝试一次写入；新 revision 可重试。宿主表单不可用时 localStorage
+   仍保留本机选择，受浏览器 origin 限制。当前通道实况可在
    `#joi-theme-css[data-joi-metrics]` 的 `persistence` 字段看到。
 2. **首帧闪烁。** host 的引导脚本只认明暗三值，衣装到不了那一步，
    所以刷新后会先出现一帧未着衣装的界面。不 hack index 注入。
