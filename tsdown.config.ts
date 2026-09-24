@@ -9,13 +9,15 @@
  * 的产物逐字节同形（对照 ui-goal 的 lib/client.js 实测）。
  *
  * 外部化名单只能是模块表里真有的那些。表里没有的 require 一定在运行时抛错，
- * 所以规则是「表内外部化，其余全部内联」——本包除 react 外无运行时依赖，
- * 跨插件协作一律走 cordis 服务（ctx.theme / ctx.slots / ctx.settingsScope）。
+ * 所以规则是「表内外部化，其余全部内联」——本包除 react 与 primitives 外无运行时
+ * 依赖，跨插件协作一律走 cordis 服务（ctx.theme / ctx.slots / ctx.configForms）。
  *
- * 0.1.12 起移除原「临时豁免」项 `@deepseek-ai/dsh-client-runtime/client`：
- * dsh 0.1.2-alpha 线已删除该包，模块表不再注册其工厂，require 必然
- * 「missed the module table」。defineStore 已内联进 src/client/suit-row-store.ts
- * （见 issue #4），本名单不再需要它。
+ * 类型侧只依赖模块表里的包与纯类型包（ui-slots / ui-theme / ui-settings /
+ * ui-renderer / cordis），它们在 src 里全是 `import type`，构建时擦除，
+ * 因此不进名单也不产生 require。原「临时豁免」项
+ * `@deepseek-ai/dsh-client-runtime/client` 已随 0.1.7-rc.1 迁移一并移除：
+ * 该包在现代 dsh 里既不在模块表、也不再有类型出口（见 issue #4 与
+ * src/client/suit-row-store.ts 的内联 defineStore）。
  */
 import type { UserConfig } from 'tsdown'
 

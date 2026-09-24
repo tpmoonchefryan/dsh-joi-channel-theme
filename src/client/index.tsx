@@ -13,10 +13,11 @@
  * 明暗自始至终归 app：body[data-ds-dark-theme] 是 ui-layout presenter 的私产，
  * 本插件从不写它。
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
-// 仅类型：把 ctx.theme / ctx.settingsScope / ctx.slots 的 Context 合并拉进来。
+// 仅类型：把 ctx.theme / ctx.slots / ctx.configForms 的 Context 合并拉进来。
 // 值导入会内联出重复的运行时实例，跨插件协作只能走 cordis 服务。
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { SETTINGS_NAMESPACE, type JoiSettings, type Skin } from '../contract.ts'
@@ -30,9 +31,9 @@ import { installFavicon } from './favicon.ts'
  * 需要的服务。
  * · theme —— token 覆盖层与明暗偏好。
  * · slots —— 换装行的注册位。
- * · settingsScope —— 衣装偏好的持久化通道。
+ * · configForms —— 衣装偏好的持久化通道（dsh 0.1.7-rc.1 起取代 settingsScope）。
  */
-export const inject = ['theme', 'slots', 'settingsScope']
+export const inject = ['theme', 'slots', 'configForms']
 
 /** 装饰层暴露给回归脚本的读数入口。 */
 declare global {
@@ -48,9 +49,12 @@ declare global {
  */
 export function apply(ctx: ClientContext): void {
   // 自有命名空间。不复用 ui-theme 的：它的偏好白名单只认 light/dark/system，
-  // 自定义衣装 id 存不进去。远端浏览器没有特权设置 API 时 bind 会给出
-  // unavailable 快照，SuitRuntime 退化为进程内偏好——与内置行同款降级。
-  const scope = ctx.settingsScope.bind<JoiSettings>({ namespace: SETTINGS_NAMESPACE })
+  // 自定义衣装 id 存不进去。服务名与取法在 0.1.7-rc.1 换代：settingsScope.bind
+  // → configForms.get（entry id 即命名空间），返回对象仍是
+  // getSnapshot/subscribe/set/unset 那一套，SuitRuntime 无需改动。
+  // 远端浏览器拿不到与特权设置服务时会给出 unavailable 快照，
+  // SuitRuntime 退化为进程内偏好——与内置行同款降级。
+  const scope = ctx.configForms.get<JoiSettings>(SETTINGS_NAMESPACE)
 
   const suits = new SuitRuntime(ctx.theme, scope)
   suits.start()

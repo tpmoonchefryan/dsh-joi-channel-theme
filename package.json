@@ -1,7 +1,7 @@
 {
   "name": "dsh-joi-channel-theme",
-  "version": "0.1.11",
-  "description": "轴伊 Joi 双衣装主题（Joi-Flowers / Joi-Library）for DeepSeek Harness — unofficial, non-commercial fan theme plugin（0.1.11 兼容 dsh 0.1.2-alpha 线：宿主内联 settingsNamespace、客户端内联 defineStore，不再依赖已删除的 @deepseek-ai/dsh-client-runtime 包）",
+  "version": "0.1.12",
+  "description": "轴伊 Joi 双衣装主题（Joi-Flowers / Joi-Library）for DeepSeek Harness — unofficial, non-commercial fan theme plugin（0.1.12 兼容 dsh 0.1.7-rc.1：设置段改由宿主 Config + 客户端 ctx.configForms 承载，primitives 图标改用按笔画命名的 Medium 名，移除已下线包的类型依赖）",
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -59,22 +59,24 @@
     "verify:static": "node scripts/verify-4q.mjs"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.1",
-    "@deepseek-ai/dsh-settings": "0.1.0-rc.6",
-    "@deepseek-ai/schemastery": "3.18.1",
-    "@deepseek-ai/dsh-client-locale": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-runtime": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-ui-settings": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-ui-slots": "0.1.0-rc.6",
-    "@deepseek-ai/dsh-client-ui-theme": "0.1.0-rc.6",
+    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/dsh-api-remotes": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-store": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-settings": "0.1.7-rc.1",
+    "@deepseek-ai/schemastery": "3.18.4",
+    "@deepseek-ai/dsh-client-locale": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-theme": "0.1.7-rc.1",
     "@types/node": "^24.13.3",
     "@types/react": "~18.3.1",
     "tsdown": "^0.22.2",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-settings": "^0.1.0-rc.6 || ^0.1.2-alpha.2",
+    "@deepseek-ai/dsh-settings": "^0.1.7-rc.1",
     "@deepseek-ai/schemastery": "^3.18.1-rc.1",
     "react": "^18.2.0"
   },

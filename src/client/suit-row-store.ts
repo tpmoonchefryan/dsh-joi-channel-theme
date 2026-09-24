@@ -4,7 +4,7 @@
  * 组件只经由 props.useStore 读，写入口只有插件 apply 里的那一处同步回调。
  * 这条单向性是 slot store 的约定，也是这里不直接把 SuitRuntime 传进组件的原因。
  */
-import type { EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ActionsDecl, BakedActions, StoreHandle } from '@deepseek-ai/dsh-client-ui-slots'
 import { DEFAULT_SKIN, type Skin } from '../contract.ts'
 
 /** app 的内置明暗偏好。 */
@@ -24,28 +24,26 @@ type SuitRowActions = {
 }
 
 /**
- * alpha 兼容层：dsh 0.1.2-alpha 线把客户端运行时整体换成
- * `@deepseek-ai/dsh-client-modules` 的懒加载模块表，旧包
- * `@deepseek-ai/dsh-client-runtime` 已不在产物与模块表中——bundle 若仍
- * `require("@deepseek-ai/dsh-client-runtime/client")`，物化时会抛
- * 「client-modules: … missed the module table」让整个 boot/热载失败
- * （见 issue #4）。本包对 runtime 的唯一**值**依赖就是 defineStore，
- * 故按 rc.6 的 StoreHandle / StoreInstance 契约内联一个零依赖等价实现；
- * persist 路径本包未使用，仍按契约保留。类型导入（type-only）构建时擦除，
- * 不产生 require，可保留原样。
+ * 内联的 defineStore 兼容层。
+ *
+ * dsh 0.1.2-alpha 线起，客户端运行时换成 `@deepseek-ai/dsh-client-modules` 的
+ * 懒加载模块表，`defineStore` 不再有任何模块表入口（旧包
+ * `@deepseek-ai/dsh-client-runtime` 已删除；`@deepseek-ai/dsh-client-store` 只发
+ * 类型，不在表的 platform 名单里），所以这里按契约内联一个零依赖等价实现
+ * （见 issue #4）。
+ *
+ * 0.1.7-rc.1 起契约类型改从 `@deepseek-ai/dsh-client-ui-slots` 取（它转出
+ * dsh-client-store 的 StoreHandle / StoreInstance / ActionsDecl / BakedActions），
+ * 不再有 dsh-client-runtime 这个类型出口；`StoreInstance` 在新契约里只要求
+ * actions / getSnapshot / subscribe / clearPersisted——框架侧消费的也是这四样
+ * （见 ui-slots 的 StoreInstanceLike），故旧实现里那个多余的原始引擎 store
+ * 字段随之删除，persist 路径本包未使用、仍按契约保留。
  */
-type ActionsDecl<S> = Record<string, (draft: S, ...params: any[]) => void>
-
-/** BakedActions：把声明的 draft 参数烘焙掉（与 ui-slots 契约一致）。 */
-type BakedActions<S, A extends ActionsDecl<S>> = {
-  [K in keyof A]: A[K] extends (draft: S, ...params: infer P) => void ? (...params: P) => void : never
-}
-
 function defineStoreCompat<S, A extends ActionsDecl<S>>(decl: {
   init: () => S
   persist?: string
   actions: A
-}): EngineStoreHandle<S, A> {
+}): StoreHandle<S, A> {
   return {
     spec: decl,
     create(scopeKey?: string) {
@@ -65,10 +63,6 @@ function defineStoreCompat<S, A extends ActionsDecl<S>>(decl: {
       }
       const update = (mutator: (draft: S) => void): void => {
         state = produce(state, mutator)
-        notify()
-      }
-      const set = (next: S): void => {
-        state = next
         notify()
       }
       const getSnapshot = (): S => state
@@ -95,8 +89,6 @@ function defineStoreCompat<S, A extends ActionsDecl<S>>(decl: {
             localStorage.removeItem(persistKey)
           } catch {}
         },
-        // EngineStoreInstance 契约要求的原始引擎 store（框架/测试 API）。
-        store: { getSnapshot, subscribe, update, set },
       }
     },
   }
@@ -106,8 +98,8 @@ function defineStoreCompat<S, A extends ActionsDecl<S>>(decl: {
  * 声明换装行的状态与写入面。
  * @returns store 句柄。
  */
-export function createSuitRowStore(): EngineStoreHandle<SuitRowState, SuitRowActions> {
-  return defineStoreCompat({
+export function createSuitRowStore(): StoreHandle<SuitRowState, SuitRowActions> {
+  return defineStoreCompat<SuitRowState, SuitRowActions>({
     init: (): SuitRowState => ({ suit: DEFAULT_SKIN, preference: 'system' }),
     actions: {
       sync: (d, suit: Skin, preference: Preference) => {
