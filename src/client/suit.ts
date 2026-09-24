@@ -10,7 +10,7 @@
  *   · 偏好要能存。ui-theme 的偏好白名单只认 light/dark/system，
  *     自定义 id 存不进去，所以走本插件自有的设置命名空间。
  */
-import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { DEFAULT_SKIN, DEFAULT_SUIT, SUIT_FIELD, isSkin, type JoiSettings, type Skin, type Suit } from '../contract.ts'
 import { tokensFor, type TokenOverrides } from './tokens.ts'
 
@@ -60,13 +60,13 @@ export class SuitRuntime {
   private lastSuit: Suit = DEFAULT_SUIT
 
   private readonly host: TokenLayerHost
-  private readonly scope: SettingsScope<JoiSettings> | undefined
+  private readonly scope: ConfigForm<JoiSettings> | undefined
 
   /**
    * @param host - token 覆盖宿主（生产环境是 ctx.theme）。
    * @param scope - 本插件自有设置命名空间的句柄；不可用时退化为进程内偏好。
    */
-  constructor(host: TokenLayerHost, scope: SettingsScope<JoiSettings> | undefined) {
+  constructor(host: TokenLayerHost, scope: ConfigForm<JoiSettings> | undefined) {
     this.host = host
     this.scope = scope
   }

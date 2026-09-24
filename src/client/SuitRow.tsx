@@ -21,8 +21,12 @@
  * 手写数值还有个更要命的问题：它不跟着宿主走，app 改了行规范这里不会知道。
  */
 import { useState } from 'react'
+// 图标名随 dsh 0.1.7-rc.1 的 primitives 换代：`…Outline16` 家族改为按笔画粗细
+// 命名（Regular / Medium）。旧名在新版本里解析为 undefined —— 作为 JSX 类型就是
+// React #130「Element type is invalid」，槽位条目会被整条退位（abdicate），
+// 表现为「换装行悄悄消失、内置外观行顶回来」。取 Medium 与内置外观行同款。
 import {
-  IconDarkOutline16, IconFollowsystemOutline16, IconLightOutline16,
+  IconDarkOutlineMedium, IconFollowsystemOutlineMedium, IconLightOutlineMedium,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { PALETTE } from '../generated/baseline.ts'
@@ -59,10 +63,10 @@ const SKIN_CARDS: Record<Skin, { name: string, tag: string }> = {
 }
 
 /** 明暗三方块，与内置行同序同图标。 */
-const CUBES: ReadonlyArray<{ id: Preference, label: string, Icon: typeof IconLightOutline16 }> = [
-  { id: 'light', label: '浅色', Icon: IconLightOutline16 },
-  { id: 'dark', label: '深色', Icon: IconDarkOutline16 },
-  { id: 'system', label: '跟随系统', Icon: IconFollowsystemOutline16 },
+const CUBES: ReadonlyArray<{ id: Preference, label: string, Icon: typeof IconLightOutlineMedium }> = [
+  { id: 'light', label: '浅色', Icon: IconLightOutlineMedium },
+  { id: 'dark', label: '深色', Icon: IconDarkOutlineMedium },
+  { id: 'system', label: '跟随系统', Icon: IconFollowsystemOutlineMedium },
 ]
 
 /**

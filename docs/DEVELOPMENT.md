@@ -51,14 +51,16 @@ dsh plugin --profile web remove dsh-joi-channel-theme
 ## 从源码构建
 
 ```bash
-npm install --ignore-scripts --legacy-peer-deps && npm run build
+npm ci --ignore-scripts && npm run build   # 与 CI 同一跑法
 ```
 
-`--legacy-peer-deps` 是必需的：dsh 家族的 peer range 写成 `^4.0.1`，
-按 semver 预发布规则匹配不上 `4.0.1-rc.4`。这只影响安装解析，不影响产物。
+依赖 pin 在 `@next`（`0.1.7-rc.1`）。dsh 家族的 `latest` 目前停在 `0.1.5-rc.3`，
+0.1.7 线只在 `next`——装到 latest 拿不到新的设置 API。
 
-依赖 pin 在 `@next`（`0.1.0-rc.6`）。dsh 家族的 `latest` 停在占位版 `0.0.1-rc.1`，
-装到那个版本会以难以诊断的方式失败。
+`--legacy-peer-deps` 不再是必需的：0.1.7-rc.1 线的 peer range 是 `~4.0.4`，
+与本包的 cordis pin 同值，普通 `npm ci --ignore-scripts`（CI 的跑法）即可装上。
+若本地 npm 版本对预发布 range 仍报 ERESOLVE，退回去加那两个标志即可，
+只影响安装解析，不影响产物。
 
 ```bash
 npm run gen       # design/baseline-4q.json + stuff/ → src/generated/
@@ -143,14 +145,15 @@ npm run verify    # 四象限回归（静态半）
 
 ## 已知限制
 
-1. **衣装偏好存在 localStorage，不进 `$DSH_HOME/settings.yaml`。**
-   宿主 apiproxy 有一份硬编码命名空间白名单（`WEB_SETTINGS_NAMESPACES` /
-   `PRODUCT_SETTINGS_NAMESPACES`），`settings.describe` 只把名单内的段发给浏览器，
-   源码注释写明「未来的注册不会默认变成远端可读写」。宿主侧 `settings.register`
-   成功，浏览器侧拿到的仍是 `unavailable`。本插件两条通道都试，官方通道可用时优先
-   （名单若放开会自动用上），否则落 localStorage。后果：偏好绑在浏览器 origin 上，
-   换浏览器或换机器不跟随。当前实况可在 `#joi-theme-css[data-joi-metrics]`
-   的 `persistence` 字段看到。
+1. **官方设置通道在 0.1.7-rc.1 上已经通了；localStorage 只是兜底。**
+   本插件两条通道都试，官方通道可用时优先，否则落 localStorage。
+   0.1.7-rc.1 实测：`settings.describe` 会把本插件的命名空间（`joi-channel-theme`，
+   即 loader entry id）连同 schema 与取值一起发给浏览器，`configForms` 的写入以
+   profile patch 的 `config:` 段落持久化；这条路径已在 0.1.7-rc.1 上实机验证。
+   旧版 dsh（≤ 0.1.5 线）宿主 apiproxy 有一份硬编码命名空间白名单
+   （`WEB_SETTINGS_NAMESPACES` / `PRODUCT_SETTINGS_NAMESPACES`），第三方段发不过去，
+   那时才落到 localStorage。兜底的后果：偏好绑在浏览器 origin 上，换浏览器或换机器
+   不跟随。当前实况可在 `#joi-theme-css[data-joi-metrics]` 的 `persistence` 字段看到。
 2. **首帧闪烁。** host 的引导脚本只认明暗三值，衣装到不了那一步，
    所以刷新后会先出现一帧未着衣装的界面。不 hack index 注入。
 3. **带 hash 的类名耦合。** `r91kyq_brand`、`KZiXvq_headline`、`PcWdmW_card` 等
@@ -158,8 +161,9 @@ npm run verify    # 四象限回归（静态半）
 4. **底纹靠运行期认领表面。** 正式解法应是 app 侧出一个 `--dsh-bg-texture`
    由 AppFrame / ConversationRoot 消费；那是 upstream 议题，不在本轮范围。
 5. **WebP。** 现代浏览器通吃，但确实不是 PNG。
-6. **构建期版本差。** 类型按 npm `0.1.0-rc.6` 装，本机运行的 harness 是
-   `0.1.0-rc.5`（该版本未发布到 npm）。已在 rc.5 上实机验证通过。
+6. **构建期版本差。** 类型按 npm `0.1.7-rc.1` 装，实机验证也在这条线上
+   （dsh 0.1.7-rc.1 + web profile）。旧线的 `0.1.0-rc.5` 等版本已不再支持——
+   0.1.7 把设置链路两端都换了 API，两代无法用同一份代码同时兼容。
 
 ## 状态怎么来的
 
