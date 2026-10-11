@@ -239,7 +239,7 @@ export class Surfaces {
     this.stopFollow()
     // 关键一步：停掉整张样式表。
     // 只撤装饰是不够的——结构类规则（品牌区 98px 左内边距、logoRow 撑到 74px、
-    // 侧栏竖条、药丸 tab、composer 层序）还在生效，原生态就成了"没有装饰的错位界面"。
+    // 药丸 tab、composer 层序）还在生效，原生态就成了"没有装饰的错位界面"。
     // 用 sheet.disabled 而不是清空文本：元素还在，量测属性也就还在。
     if (this.stamp.sheet !== null) this.stamp.sheet.disabled = true
     for (const el of [this.hero.portrait, this.hero.whale, this.hero.tagline,

@@ -205,15 +205,16 @@ ${SELECTORS.trajectory} > table { background: transparent !important; }
 }
 
 /**
- * 零散令牌项：焦点环、侧栏竖条、药丸 tab、🍊 列表、危险色。
+ * 零散令牌项：焦点环、药丸 tab、🍊 列表、危险色。
+ *
+ * 侧栏左缘曾有一条 inset 3px 品牌色竖条（构图映射自 VirtuaReal 官方页），
+ * 已按 Owner 2026-10-11 裁定撤掉：它贴着窗口左缘，读作意料之外的竖纹
+ * （DSH-JOI-STORY-050）。设计基线同步撤销。
  * @returns CSS 文本。
  */
 function accentRules(): string {
   const gold = 'var(--dsw-alias-state-warn-primary)'
   return `
-/* 侧栏左侧竖条：构图逻辑那节从 VirtuaReal 官方页映射过来的第一条。 */
-${SELECTORS.sidebarCol} { box-shadow: inset 3px 0 0 var(--dsw-alias-brand-primary); }
-
 /* 会话选中态改成金色焦点环（原为左侧 inset 标记，Owner 现场裁定）。
    键盘焦点在同一处再叠一圈半透明外环：两者可以共存且能区分——
    选中是持续状态，键盘焦点是瞬时位置。 */
