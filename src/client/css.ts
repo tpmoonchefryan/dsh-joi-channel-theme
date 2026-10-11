@@ -181,9 +181,13 @@ ${SELECTORS.brand} svg { overflow: visible !important; transform: translateX(-12
  */
 function textureRules(): string {
   return `
+/* 必须 !important：宿主 0.2 线的 ConversationRoot 根与 macOS 桌面版的
+   centerCol 都用 background 简写画 bg-base，简写会把 background-image 一并
+   重置成 none，底纹贴上去也被抹掉。落点只认不透明的 bg-base 表面
+   （见 paintTexture），所以强制覆盖不会波及面板、卡片或透明容器。 */
 .${TEX_CLASS} {
-  background-image: var(--joi-texture-image);
-  background-size: var(--joi-texture-size);
+  background-image: var(--joi-texture-image) !important;
+  background-size: var(--joi-texture-size) !important;
 }
 
 /* 轨迹页把 --dsw-alias-bg-layer-1 画成不透明底盖在上面，paintTexture 只认
