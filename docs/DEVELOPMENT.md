@@ -160,6 +160,11 @@ npm run test:preferences # Host ConfigForm 恢复、迁移与首读竞态回归
    随 app 构建变化。全部集中在 `src/client/css.ts` 的 `SELECTORS`，失配时装饰不出现。
 4. **底纹靠运行期认领表面。** 正式解法应是 app 侧出一个 `--dsh-bg-texture`
    由 AppFrame / ConversationRoot 消费；那是 upstream 议题，不在本轮范围。
+   认领判据是「接近视口大小、背景色等于 bg-base 令牌、且不透明」。参照色取自令牌
+   本身而不是 body：macOS 桌面版为了侧栏毛玻璃把 html/body/AppFrame 设成透明，
+   若拿 body 底色比对，会把一串透明的全屏容器（含最顶层的 overlayLayer）全部认领，
+   底纹多层错位叠印、盖过侧栏与立绘。`.joi-tex` 的底纹声明带 `!important`，
+   因为宿主用 `background` 简写画底色，会把 `background-image` 重置掉。
 5. **WebP。** 现代浏览器通吃，但确实不是 PNG。
 6. **构建期版本差。** 类型按 npm `0.1.7-rc.1` 装，实机验证也在这条线上
    （dsh 0.1.7-rc.1 + web profile）。旧线的 `0.1.0-rc.5` 等版本已不再支持——

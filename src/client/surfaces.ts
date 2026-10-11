@@ -96,6 +96,8 @@ export class Surfaces {
   private readonly stamp: HTMLStyleElement
   private readonly hero: HeroNodes
   private readonly chat: ChatNodes
+  /** 解析 bg-base 实际颜色用的隐藏节点（见 paintTexture）。 */
+  private readonly baseProbe: HTMLDivElement
   private readonly loop: { schedule: () => void, dispose: () => void }
   /**
    * 逐帧贴锚的 rAF 句柄；undefined 表示没在跑。
@@ -160,6 +162,12 @@ export class Surfaces {
     tagline.style.cssText = 'position:absolute;pointer-events:none;text-align:center;'
       + 'font-size:12px;color:var(--dsw-alias-label-tertiary);z-index:6'
     this.hero = { portrait, whale, tagline }
+
+    // 底纹判据的参照色：bg-base 令牌算出来的值。display:none 不影响计算值，
+    // 也不占布局；token 由 presenter 写在 body 行内，挂在 body 下才继承得到。
+    this.baseProbe = this.nodes.own('div', `${ID}-base-probe`)
+    this.baseProbe.setAttribute('aria-hidden', 'true')
+    this.baseProbe.style.cssText = 'display:none;background-color:var(--dsw-alias-bg-base)'
 
     this.chat = {
       joi: this.nodes.own('div', `${ID}-joi`),
@@ -231,7 +239,7 @@ export class Surfaces {
     this.stopFollow()
     // 关键一步：停掉整张样式表。
     // 只撤装饰是不够的——结构类规则（品牌区 98px 左内边距、logoRow 撑到 74px、
-    // 侧栏竖条、药丸 tab、composer 层序）还在生效，原生态就成了"没有装饰的错位界面"。
+    // 药丸 tab、composer 层序）还在生效，原生态就成了"没有装饰的错位界面"。
     // 用 sheet.disabled 而不是清空文本：元素还在，量测属性也就还在。
     if (this.stamp.sheet !== null) this.stamp.sheet.disabled = true
     for (const el of [this.hero.portrait, this.hero.whale, this.hero.tagline,
@@ -304,7 +312,7 @@ export class Surfaces {
     }
     // 表情跟着真实运行状态走；手动置态时让位给人。
     if (!this.manual) this.state = this.tracker.read()
-    this.textured = paintTexture()
+    this.textured = paintTexture(this.baseProbe)
     const hero = placeHero(this.hero, this.suit)
     if (hero === undefined) this.stopFollow()
     else this.startFollow()
@@ -330,6 +338,24 @@ export class Surfaces {
 }
 
 /**
+ * 计算出的颜色是否完全不透明。
+ *
+ * getComputedStyle 把不透明色序列化成 `rgb(r, g, b)`，带透明度的才是
+ * `rgba(…, a)` 或 `color(… / a)`；`transparent` 本身算出来是 `rgba(0, 0, 0, 0)`。
+ * @param color - 计算后的颜色串。
+ * @returns 不透明为真。
+ */
+function isOpaque(color: string): boolean {
+  const c = color.trim()
+  if (c === '' || c === 'transparent') return false
+  const legacy = /^rgba\(.*,\s*([\d.]+%?)\s*\)$/.exec(c)
+  const modern = /\/\s*([\d.]+%?)\s*\)$/.exec(c)
+  const alpha = legacy?.[1] ?? modern?.[1]
+  if (alpha === undefined) return true
+  return alpha.endsWith('%') ? Number.parseFloat(alpha) >= 100 : Number.parseFloat(alpha) >= 1
+}
+
+/**
  * 找出真正画着底色的大容器，给它们贴底纹。
  *
  * 纹理不能贴 body：AppFrame 与 ConversationRoot 都把 --dsw-alias-bg-base
@@ -337,20 +363,40 @@ export class Surfaces {
  * 出一个 --dsh-bg-texture 由这些组件消费（upstream 议题，不在本 INIT 范围），
  * 在那之前只能运行期认领。
  *
- * 判据是「尺寸接近视口 且 背景色恰好等于 body 底色」——面板、卡片、弹层的
- * 底色都不是 bg-base，所以不会被误伤，纹理也就不会透进面板。
+ * 判据是「尺寸接近视口 且 背景色恰好等于 bg-base 且不透明」——面板、卡片、
+ * 弹层的底色都不是 bg-base，所以不会被误伤，纹理也就不会透进面板。
+ *
+ * 底色的参照取自 bg-base 令牌本身（经 probe 节点算出），不读 body 的背景：
+ * 桌面版 macOS 为了让侧栏透出窗口毛玻璃，把 html/body 与 AppFrame 都设成
+ * transparent（宿主 base.css 的 `html[data-platform='darwin'] body`）。
+ * 那时 body 底色是 `rgba(0, 0, 0, 0)`，旧判据「等于 body 底色」会把 #root、
+ * AppFrame、会话体、滚动体乃至最顶上的 overlayLayer 这些透明全屏容器统统
+ * 认领，于是底纹在多层错位叠印，最上面那层直接盖过侧栏与立绘。
+ * 透明容器自己不画底色，本来就没有可贴的表面，所以不透明是硬条件。
+ *
+ * 不再匹配的旧落点要撤掉：明暗切换、平台属性变化之后，上一轮认领的
+ * 容器可能已经不画 bg-base 了。
+ * @param probe - 背景色写成 var(--dsw-alias-bg-base) 的隐藏节点。
  * @returns 贴上底纹的表面数。
  */
-function paintTexture(): number {
-  const base = getComputedStyle(document.body).backgroundColor
-  let hit = 0
-  for (const el of document.querySelectorAll('body div')) {
-    if (hit >= 8) break
-    const r = el.getBoundingClientRect()
-    if (r.width < window.innerWidth * 0.45 || r.height < window.innerHeight * 0.45) continue
-    if (getComputedStyle(el).backgroundColor !== base) continue
-    el.classList.add(TEX_CLASS)
-    hit++
+function paintTexture(probe: HTMLElement): number {
+  const base = getComputedStyle(probe).backgroundColor
+  const keep = new Set<Element>()
+  if (isOpaque(base)) {
+    for (const el of document.querySelectorAll('body div')) {
+      if (keep.size >= 8) break
+      if (el === probe) continue
+      const r = el.getBoundingClientRect()
+      if (r.width < window.innerWidth * 0.45 || r.height < window.innerHeight * 0.45) continue
+      if (getComputedStyle(el).backgroundColor !== base) continue
+      keep.add(el)
+    }
   }
-  return hit
+  for (const el of document.querySelectorAll(`.${TEX_CLASS}`)) {
+    if (!keep.has(el)) el.classList.remove(TEX_CLASS)
+  }
+  // 已有类名就不再写：classList.add 即便值不变也会改写 class 属性、
+  // 触发 MutationObserver，等于每帧自己唤醒自己。
+  for (const el of keep) if (!el.classList.contains(TEX_CLASS)) el.classList.add(TEX_CLASS)
+  return keep.size
 }
