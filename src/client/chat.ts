@@ -4,6 +4,10 @@
  * 落座定稿（Owner 三轮现场纠偏）：正立、无倾斜、坐在输入框上方，
  * 底缘与框顶平齐，左轴芯右轴伊。
  *
+ * 横向让位：正文从卡片内边起排，角色坐在卡内两角就等于压住每行首字。
+ * 卡片两侧（composerStack 内）放得下时退到卡片外侧，正文不再被压；
+ * 窄窗口放不下就回卡内原位，可读性交给 .joi-halo 描边兜底。
+ *
  * 「底缘平齐」不能按元素底对齐 —— 元素对齐 ≠ 视觉对齐。三张精灵表的内容
  * 底缘在格子里的位置不同（轴伊压到 0.995，轴芯 traced 版是 0.957），
  * 直接对元素底会差出约 5px，一高一低看得很明显。所以按各表实测的
@@ -45,9 +49,13 @@ const CELL: Record<FaceState, [number, number]> = {
  */
 const FOOT = { joi: 0.995, zhouxin: 0.957 } as const
 
-/** 角色渲染尺寸与左右内缩。 */
+/** 角色渲染尺寸、卡内缩进与卡外间距。 */
 const SIZE = 112
 const INSET = 28
+/** 退到卡片外侧时与卡片边缘的距离；空白不够时会收窄。 */
+const OUTSET = 16
+/** 卡外落座至少留的呼吸缝，低于它就宁可退回卡内。 */
+const MIN_GAP = 4
 
 /** 对话页角色要用到的节点。 */
 export interface ChatNodes {
@@ -103,10 +111,17 @@ export function placeChat(nodes: ChatNodes, suit: Suit, state: ChatState): ChatM
   }
 
   const seat = r.top // 落座线 = 输入框顶边
+  const area = chatComposer()?.getBoundingClientRect()
+  const roomLeft = r.left - (area?.left ?? 0)
+  const roomRight = (area?.right ?? window.innerWidth) - r.right
+  const gapLeft = Math.max(0, Math.min(OUTSET, roomLeft - SIZE))
+  const gapRight = Math.max(0, Math.min(OUTSET, roomRight - SIZE))
+  const joiX = roomRight >= SIZE + MIN_GAP ? r.right + gapRight : r.right - INSET - SIZE
+  const zhouxinX = roomLeft >= SIZE + MIN_GAP ? r.left - gapLeft - SIZE : r.left + INSET
   const joiSheet = suit === 'flowers' ? ASSETS.joiFlowers : ASSETS.joiLibrary
 
-  seatOne(nodes.joi, joiSheet, CELL[state.joi], r.right - INSET - SIZE, seat - SIZE * FOOT.joi)
-  seatOne(nodes.zhouxin, ASSETS.zhouxin, CELL[state.zhouxin], r.left + INSET, seat - SIZE * FOOT.zhouxin)
+  seatOne(nodes.joi, joiSheet, CELL[state.joi], joiX, seat - SIZE * FOOT.joi)
+  seatOne(nodes.zhouxin, ASSETS.zhouxin, CELL[state.zhouxin], zhouxinX, seat - SIZE * FOOT.zhouxin)
 
   return {
     seat: Math.round(seat),
