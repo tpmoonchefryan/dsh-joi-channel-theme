@@ -32,7 +32,7 @@ export type TokenOverrides = Record<string, TokenModes>
  * @param suit - 衣装。
  * @returns 可直接交给 ctx.theme.overrideTokens 的覆盖表。
  */
-export function tokensFor(suit: Suit, minimalMode = false): TokenOverrides {
+export function tokensFor(suit: Suit): TokenOverrides {
   const out: TokenOverrides = {}
 
   // ① 中性色阶。色阶本身与明暗无关（明暗差异体现在 alias 引用哪一级），
@@ -72,7 +72,7 @@ export function tokensFor(suit: Suit, minimalMode = false): TokenOverrides {
   // 底纹图案、描边色、气泡文字色。把它们也做成 token 的好处是样式表因此
   // 完全静态——换装只换 token，一行 CSS 都不用重建，也就没有「样式表与
   // 当前衣装不同步」这一类状态可言。
-  Object.assign(out, privateVars(suit, minimalMode))
+  Object.assign(out, privateVars(suit))
 
   return out
 }
@@ -105,17 +105,14 @@ function haloThin(ground: string): string {
  * @param suit - 衣装。
  * @returns 私有变量的明暗值对。
  */
-function privateVars(suit: Suit, minimalMode: boolean): TokenOverrides {
+function privateVars(suit: Suit): TokenOverrides {
   const l = PALETTE[suit].light
   const d = PALETTE[suit].dark
-  const texture = (mode: 'light' | 'dark'): string => {
-    if (!minimalMode) return textureImage(suit, mode)
+  const minimalTexture = (mode: 'light' | 'dark'): string => {
     const outline = MINIMAL_TEXTURE[suit][mode]
     return suit === 'library' ? `${outline}, ${textureImage(suit, mode)}` : outline
   }
-  const textureSize = minimalMode
-    ? `${MINIMAL_TEXTURE[suit].tile}${suit === 'library' ? `, ${TEXTURE[suit].tile}` : ''}`
-    : TEXTURE[suit].tile
+  const minimalTextureSize = `${MINIMAL_TEXTURE[suit].tile}${suit === 'library' ? `, ${TEXTURE[suit].tile}` : ''}`
   const pair = (light: string | undefined, dark: string | undefined): TokenModes =>
     ({ light: light ?? 'transparent', dark: dark ?? 'transparent' })
 
@@ -152,8 +149,11 @@ function privateVars(suit: Suit, minimalMode: boolean): TokenOverrides {
     '--dsw-alias-state-success-primary': pair(SHIKI[suit].light.string, SHIKI[suit].dark.string),
     '--dsh-state-ongoing': pair(l.tangerine, d.tangerine),
     // 底纹的整张图案与瓦片尺寸。做成变量后 .joi-tex 那条规则一次写死。
-    '--joi-texture-image': { light: texture('light'), dark: texture('dark') },
-    '--joi-texture-size': { light: textureSize, dark: textureSize },
+    '--joi-texture-image': { light: textureImage(suit, 'light'), dark: textureImage(suit, 'dark') },
+    '--joi-texture-size': { light: TEXTURE[suit].tile, dark: TEXTURE[suit].tile },
+    // 简约底纹只由已有对话页的表面消费，不替换全局或新对话页的底纹。
+    '--joi-minimal-texture-image': { light: minimalTexture('light'), dark: minimalTexture('dark') },
+    '--joi-minimal-texture-size': { light: minimalTextureSize, dark: minimalTextureSize },
     // 立绘边缘光：浅色下 Library 的白开衫贴近白底会糊，深色下则要一圈冷光把她从背景里拉出来。
     '--joi-rim': {
       light: 'drop-shadow(0 0 1px rgba(70,80,100,.30)) drop-shadow(0 2px 10px rgba(70,80,100,.13))',

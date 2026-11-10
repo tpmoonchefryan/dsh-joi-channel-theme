@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { tokensFor } from '../src/client/tokens.ts'
-import { SELECTORS } from '../src/client/css.ts'
+import { MINIMAL_CLASS, SELECTORS, TEX_CLASS } from '../src/client/css.ts'
 
 let client
 const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
@@ -39,7 +39,12 @@ class ElementStub {
   listeners = new Map()
   style = { cssText: '', display: '', removeProperty() {} }
   sheet = null
-  classList = { add() {}, remove() {}, contains() { return false } }
+  classes = new Set()
+  classList = {
+    add: name => { this.classes.add(name) },
+    remove: name => { this.classes.delete(name) },
+    contains: name => this.classes.has(name),
+  }
 
   constructor(tag) {
     this.tagName = tag
@@ -77,12 +82,14 @@ class DocumentStub {
   chat = false
   card = new ElementStub('div')
   stack = new ElementStub('div')
+  surface = new ElementStub('div')
 
   constructor() {
     this.card.getBoundingClientRect = () => ({ left: 240, right: 1040, top: 650, bottom: 750, width: 800, height: 100 })
     this.stack.className = 'test_composerStack'
     this.stack.getBoundingClientRect = () => ({ left: 0, right: 1280, top: 0, bottom: 800, width: 1280, height: 800 })
     this.stack.querySelector = selector => selector === SELECTORS.composerCard ? this.card : null
+    this.surface.getBoundingClientRect = () => ({ left: 0, right: 1280, top: 0, bottom: 800, width: 1280, height: 800 })
   }
 
   createElement(tag) { return new ElementStub(tag) }
@@ -93,7 +100,12 @@ class DocumentStub {
     if (selector === SELECTORS.composerStack) return this.stack
     return null
   }
-  querySelectorAll() { return [] }
+  querySelectorAll(selector) {
+    if (selector === 'body div') return [this.surface]
+    if (selector === `.${TEX_CLASS}` && this.surface.classList.contains(TEX_CLASS)) return [this.surface]
+    if (selector === `.${MINIMAL_CLASS}` && this.surface.classList.contains(MINIMAL_CLASS)) return [this.surface]
+    return []
+  }
 }
 
 class ConfigFormStub {
@@ -144,7 +156,12 @@ function installBrowserGlobals(storage) {
   }
   globalThis.window = { addEventListener() {}, removeEventListener() {}, innerWidth: 1280, innerHeight: 800, scrollX: 0, scrollY: 0 }
   globalThis.document = new DocumentStub()
-  globalThis.MutationObserver = class { observe() {} disconnect() {} }
+  const mutationCallbacks = new Set()
+  globalThis.MutationObserver = class {
+    constructor(run) { this.run = run; mutationCallbacks.add(run) }
+    observe() {}
+    disconnect() { mutationCallbacks.delete(this.run) }
+  }
   const frames = new Map()
   let frameId = 0
   globalThis.requestAnimationFrame = run => { frames.set(++frameId, run); return frameId }
@@ -163,6 +180,7 @@ function installBrowserGlobals(storage) {
     frames.clear()
     for (const run of current) run()
   }
+  restore.notifyMutation = () => { for (const run of mutationCallbacks) run() }
   return restore
 }
 
@@ -234,6 +252,48 @@ function switches(tree) {
   const own = typeof tree.props?.checked === 'boolean' ? [tree.props] : []
   const children = tree.props?.children
   return own.concat((Array.isArray(children) ? children : [children]).flatMap(switches))
+}
+
+for (const suit of ['flowers', 'library']) {
+  test(`${suit} minimal background stays scoped when moving between a conversation and new chat`, () => {
+    const restoreGlobals = installBrowserGlobals(memoryStorage())
+    document.chat = true
+    const scope = new ConfigFormStub(readySnapshot({ suit, minimalMode: true, user: { suit, minimalMode: true } }))
+    const app = createEntry(scope)
+    try {
+      restoreGlobals.flushFrames()
+      assert.equal(document.surface.classList.contains(MINIMAL_CLASS), true)
+      assert.equal(document.getElementById('joi-theme-joi').style.display, 'none')
+      const classicTexture = app.theme.layers.get('dsh-joi-channel-theme')['--joi-texture-image']
+
+      document.stack.className = 'test_composerStack test_composerHero'
+      restoreGlobals.notifyMutation()
+      restoreGlobals.flushFrames()
+      assert.equal(document.surface.classList.contains(TEX_CLASS), true)
+      assert.equal(document.surface.classList.contains(MINIMAL_CLASS), false)
+      assert.deepEqual(app.theme.layers.get('dsh-joi-channel-theme')['--joi-texture-image'], classicTexture)
+
+      const actions = app.bindSettingsRow()
+      actions.setMinimalMode(false)
+      restoreGlobals.flushFrames()
+      assert.equal(document.surface.classList.contains(MINIMAL_CLASS), false)
+      assert.deepEqual(app.theme.layers.get('dsh-joi-channel-theme')['--joi-texture-image'], classicTexture)
+
+      actions.setMinimalMode(true)
+      document.stack.className = 'test_composerStack'
+      restoreGlobals.notifyMutation()
+      restoreGlobals.flushFrames()
+      assert.equal(document.surface.classList.contains(MINIMAL_CLASS), true)
+
+      actions.setSuit('native')
+      restoreGlobals.flushFrames()
+      assert.equal(document.surface.classList.contains(TEX_CLASS), false)
+      assert.equal(document.surface.classList.contains(MINIMAL_CLASS), false)
+    } finally {
+      app.dispose()
+      restoreGlobals()
+    }
+  })
 }
 
 for (const field of ['minimalMode', 'antiOcclusion']) {

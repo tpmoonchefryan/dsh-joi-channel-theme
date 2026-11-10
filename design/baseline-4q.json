@@ -277,7 +277,7 @@
  },
  "minimalTexture": {
   "flowers": {
-   "tile": "512px 256px",
+   "tile": "128px 64px",
    "angles": [
     -15,
     15
@@ -294,7 +294,7 @@
    }
   },
   "library": {
-   "tile": "256px 256px",
+   "tile": "64px 64px",
    "angles": [
     -15
    ],

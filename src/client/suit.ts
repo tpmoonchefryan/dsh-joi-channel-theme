@@ -256,7 +256,6 @@ export class SuitRuntime {
 
     const flags = this.readFlags()
     let flagsChanged = false
-    let textureChanged = false
     for (const field of FLAG_FIELDS) {
       const pending = this.pendingLocalFlags.get(field)
       if (pending !== undefined) {
@@ -272,10 +271,8 @@ export class SuitRuntime {
       if (value !== undefined && value !== this.currentFlags[field]) {
         this.currentFlags[field] = value
         flagsChanged = true
-        if (field === MINIMAL_MODE_FIELD) textureChanged = true
       }
     }
-    if (textureChanged) this.mount()
     if (flagsChanged) {
       this.notify()
     }
@@ -344,7 +341,6 @@ export class SuitRuntime {
       this.lastFlagWriteAttempts.delete(field)
     }
     if (changed) {
-      if (field === MINIMAL_MODE_FIELD) this.mount()
       this.notify()
     }
     if (persist) this.writeFlagHost(field, value)
@@ -399,7 +395,7 @@ export class SuitRuntime {
     this.detach?.()
     this.detach = undefined
     if (this.current === 'native') return
-    this.detach = this.host.overrideTokens(LAYER, tokensFor(this.current, this.currentFlags.minimalMode))
+    this.detach = this.host.overrideTokens(LAYER, tokensFor(this.current))
   }
 
   private writeHost(suit: Skin): void {

@@ -391,7 +391,11 @@ for (const suit of ['flowers', 'library']) {
     runtime.start()
     const classic = host.layers.get('dsh-joi-channel-theme')['--joi-texture-image']
     runtime.setMinimalMode(true, false)
-    const minimal = host.layers.get('dsh-joi-channel-theme')['--joi-texture-image']
+    const minimal = host.layers.get('dsh-joi-channel-theme')['--joi-minimal-texture-image']
+    assert.deepEqual(host.layers.get('dsh-joi-channel-theme')['--joi-texture-image'], classic,
+      'the global background stays classic while minimal mode changes')
+    assert.equal(host.layers.get('dsh-joi-channel-theme')['--joi-minimal-texture-size'].light,
+      suit === 'flowers' ? '128px 64px' : '64px 64px, 22px 22px, 22px 22px')
     for (const mode of ['light', 'dark']) {
       const image = minimal[mode]
       assert.notEqual(image, classic[mode])
@@ -413,7 +417,7 @@ for (const suit of ['flowers', 'library']) {
     runtime.setMinimalMode(true, false)
     assert.equal(host.layers.size, 0)
     runtime.setEnabled(true)
-    assert.deepEqual(host.layers.get('dsh-joi-channel-theme'), tokensFor(suit, true))
+    assert.deepEqual(host.layers.get('dsh-joi-channel-theme'), tokensFor(suit))
     runtime.dispose()
   })
 }

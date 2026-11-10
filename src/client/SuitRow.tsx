@@ -280,7 +280,7 @@ export function SuitRow({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <div style={NATIVE.title}>简约模式</div>
-            <div style={NATIVE.desc}>隐藏输入框两侧角色并启用空心描边底纹</div>
+            <div style={NATIVE.desc}>仅对话页隐藏输入框两侧角色并启用小号空心底纹</div>
           </div>
           <Switch
             checked={minimalMode}
