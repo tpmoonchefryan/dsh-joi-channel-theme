@@ -42,8 +42,11 @@ for (const suit of ['flowers', 'library']) {
     const group = source.match(/<g\b[\s\S]*<\/g>/)?.[0]
     if (!group) throw new Error(`minimalTexture.${suit}.${mode} 缺少 SVG 线稿`)
     const figure = group.replace(/stroke="#[A-Fa-f0-9]+"/, `stroke="${spec[mode].color}"`)
+    // 图案尺寸与平铺间距分别控制，缩小图案不会再增加重复密度。
+    const scale = spec.motifSize / 128
+    const inset = (128 - spec.motifSize) / 2
     const figures = spec.angles.map((angle, i) =>
-      `<g transform="translate(${i * 128} 0)">${figure.replace('rotate(-15 64 64)', `rotate(${angle} 64 64)`)}</g>`,
+      `<g transform="translate(${i * 128 + inset} ${inset}) scale(${scale})">${figure.replace('rotate(-15 64 64)', `rotate(${angle} 64 64)`)}</g>`,
     ).join('')
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${128 * spec.angles.length} 128" fill="none"><g opacity="${spec[mode].opacity}">${figures}</g></svg>`
     minimalTexture[suit][mode] = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`

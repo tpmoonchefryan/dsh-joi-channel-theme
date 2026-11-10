@@ -395,7 +395,7 @@ for (const suit of ['flowers', 'library']) {
     assert.deepEqual(host.layers.get('dsh-joi-channel-theme')['--joi-texture-image'], classic,
       'the global background stays classic while minimal mode changes')
     assert.equal(host.layers.get('dsh-joi-channel-theme')['--joi-minimal-texture-size'].light,
-      suit === 'flowers' ? '128px 64px' : '64px 64px, 22px 22px, 22px 22px')
+      suit === 'flowers' ? '256px 128px' : '128px 128px, 22px 22px, 22px 22px')
     for (const mode of ['light', 'dark']) {
       const image = minimal[mode]
       assert.notEqual(image, classic[mode])
@@ -403,6 +403,12 @@ for (const suit of ['flowers', 'library']) {
       assert.ok(uri, 'outline SVG is embedded')
       const svg = decodeURIComponent(uri)
       assert.match(svg, /fill="none"/)
+      const placements = [...svg.matchAll(/translate\(([\d.]+) ([\d.]+)\) scale\(([\d.]+)\)/g)]
+      assert.equal(placements.length, suit === 'flowers' ? 2 : 1)
+      assert.equal(128 * Number(placements[0][3]), 32, 'motifs are 32px, independent of the tile pitch')
+      assert.equal(Number(placements[0][1]), 48, 'the smaller motif is centered in its 128px cell')
+      assert.equal(Number(placements[0][2]), 48)
+      if (suit === 'flowers') assert.equal(Number(placements[1][1]) - Number(placements[0][1]), 128)
       assert.match(svg, /rotate\(-15 64 64\)/)
       if (suit === 'flowers') assert.match(svg, /rotate\(15 64 64\)/)
       if (mode === 'dark') {
