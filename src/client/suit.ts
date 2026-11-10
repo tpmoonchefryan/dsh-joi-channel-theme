@@ -11,7 +11,12 @@
  *     本插件 ConfigForm，并兼容迁移此前存在 localStorage 的选择。
  */
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { DEFAULT_SKIN, DEFAULT_SUIT, SUIT_FIELD, isSkin, type JoiSettings, type Skin, type Suit } from '../contract.ts'
+import {
+  DEFAULT_SKIN, DEFAULT_SUIT, SUIT_FIELD,
+  MINIMAL_MODE_FIELD, DESKTOP_PET_FIELD, ANTI_OCCLUSION_FIELD,
+  DEFAULT_MINIMAL_MODE, DEFAULT_DESKTOP_PET, DEFAULT_ANTI_OCCLUSION,
+  isSkin, type JoiSettings, type Skin, type Suit,
+} from '../contract.ts'
 import { tokensFor, type TokenOverrides } from './tokens.ts'
 
 /** 挂载/卸载一层 token 覆盖的最小面，便于测试替身。 */
@@ -34,14 +39,24 @@ const LAYER = 'dsh-joi-channel-theme'
  */
 const LOCAL_KEY = 'dsh-joi-channel-theme.suit'
 
+/** 特性开关快照。 */
+export interface SuitFlags {
+  minimalMode: boolean
+  desktopPet: boolean
+  antiOcclusion: boolean
+}
+
 /** 衣装变化的订阅者。 */
-export type SuitListener = (skin: Skin) => void
+export type SuitListener = (skin: Skin, flags: SuitFlags) => void
 
 /**
  * 衣装运行时：持有当前衣装、唯一的 token 层，以及偏好读写。
  */
 export class SuitRuntime {
   private current: Skin = DEFAULT_SKIN
+  private minimalMode = DEFAULT_MINIMAL_MODE
+  private desktopPet = DEFAULT_DESKTOP_PET
+  private antiOcclusion = DEFAULT_ANTI_OCCLUSION
   private detach: (() => void) | undefined
   private readonly listeners = new Set<SuitListener>()
   /** 用户是否已明确选过。未选过就不写盘——首装不该在设置文档里留痕。 */
@@ -85,6 +100,66 @@ export class SuitRuntime {
   /** @returns 是否处于原生态（不着色、不装饰）。 */
   get isNative(): boolean {
     return this.current === 'native'
+  }
+
+  /** @returns 当前各特性开关快照。 */
+  get flags(): SuitFlags {
+    return {
+      minimalMode: this.minimalMode,
+      desktopPet: this.desktopPet,
+      antiOcclusion: this.antiOcclusion,
+    }
+  }
+
+  /** @returns 是否处于简约模式。 */
+  get isMinimalMode(): boolean {
+    return this.minimalMode
+  }
+
+  /** @returns 是否开启轴伊桌宠。 */
+  get isDesktopPet(): boolean {
+    return this.desktopPet
+  }
+
+  /** @returns 是否开启 Q 版形象防遮挡。 */
+  get isAntiOcclusion(): boolean {
+    return this.antiOcclusion
+  }
+
+  /**
+   * 设置简约模式开关。
+   * @param on - 是否开启。
+   * @param persist - 是否持久化。
+   */
+  setMinimalMode(on: boolean, persist = true): void {
+    if (this.minimalMode === on) return
+    this.minimalMode = on
+    if (persist) this.writeField(MINIMAL_MODE_FIELD, on)
+    this.notify()
+  }
+
+  /**
+   * 设置轴伊桌宠开关。
+   * @param on - 是否开启。
+   * @param persist - 是否持久化。
+   */
+  setDesktopPet(on: boolean, persist = true): void {
+    if (this.desktopPet === on) return
+    this.desktopPet = on
+    if (persist) this.writeField(DESKTOP_PET_FIELD, on)
+    this.notify()
+  }
+
+  /**
+   * 设置 Q 版形象防遮挡开关。
+   * @param on - 是否开启。
+   * @param persist - 是否持久化。
+   */
+  setAntiOcclusion(on: boolean, persist = true): void {
+    if (this.antiOcclusion === on) return
+    this.antiOcclusion = on
+    if (persist) this.writeField(ANTI_OCCLUSION_FIELD, on)
+    this.notify()
   }
 
   /**
@@ -146,6 +221,32 @@ export class SuitRuntime {
   }
 
   /**
+   * 读回各特性开关配置。
+   */
+  private readFlags(): { minimalMode?: boolean, desktopPet?: boolean, antiOcclusion?: boolean } {
+    const snapshot = this.scope?.getSnapshot()
+    if (snapshot?.status !== 'ready') return {}
+    const user = (typeof snapshot.user === 'object' && snapshot.user !== null && !Array.isArray(snapshot.user))
+      ? snapshot.user as Record<string, unknown>
+      : undefined
+    const val = (typeof snapshot.value === 'object' && snapshot.value !== null && !Array.isArray(snapshot.value))
+      ? snapshot.value as Record<string, unknown>
+      : undefined
+
+    const extract = (field: string): boolean | undefined => {
+      if (user && typeof user[field] === 'boolean') return user[field]
+      if (val && typeof val[field] === 'boolean') return val[field]
+      return undefined
+    }
+
+    return {
+      minimalMode: extract(MINIMAL_MODE_FIELD),
+      desktopPet: extract(DESKTOP_PET_FIELD),
+      antiOcclusion: extract(ANTI_OCCLUSION_FIELD),
+    }
+  }
+
+  /**
    * 读回持久偏好并挂上对应衣装；无宿主/旧值时用默认衣装。
    */
   start(): void {
@@ -156,6 +257,11 @@ export class SuitRuntime {
       this.chosen = true
       if (stored !== 'native') this.lastSuit = stored
     }
+    const flags = this.readFlags()
+    if (flags.minimalMode !== undefined) this.minimalMode = flags.minimalMode
+    if (flags.desktopPet !== undefined) this.desktopPet = flags.desktopPet
+    if (flags.antiOcclusion !== undefined) this.antiOcclusion = flags.antiOcclusion
+
     this.mount()
     this.stopWatchingScope?.()
     this.stopWatchingScope = this.scope?.subscribe(() => this.syncFromHost())
@@ -171,6 +277,24 @@ export class SuitRuntime {
     if (this.disposed) return
     const snapshot = this.scope?.getSnapshot()
     if (snapshot?.status !== 'ready') return
+
+    const flags = this.readFlags()
+    let flagsChanged = false
+    if (flags.minimalMode !== undefined && flags.minimalMode !== this.minimalMode) {
+      this.minimalMode = flags.minimalMode
+      flagsChanged = true
+    }
+    if (flags.desktopPet !== undefined && flags.desktopPet !== this.desktopPet) {
+      this.desktopPet = flags.desktopPet
+      flagsChanged = true
+    }
+    if (flags.antiOcclusion !== undefined && flags.antiOcclusion !== this.antiOcclusion) {
+      this.antiOcclusion = flags.antiOcclusion
+      flagsChanged = true
+    }
+    if (flagsChanged) {
+      this.notify()
+    }
 
     const explicit = this.explicitHostSuit()
     if (this.pendingLocalSuit !== undefined) {
@@ -220,7 +344,18 @@ export class SuitRuntime {
     if (persist) {
       this.write(suit)
     }
-    for (const listener of this.listeners) listener(suit)
+    this.notify()
+  }
+
+  /** 通知全部订阅者最新皮肤与开关状态。 */
+  private notify(): void {
+    for (const listener of this.listeners) listener(this.current, this.flags)
+  }
+
+  private writeField(field: string, value: unknown): void {
+    const snapshot = this.scope?.getSnapshot()
+    if (!this.scope || snapshot?.status !== 'ready' || !snapshot.writable) return
+    void this.scope.set(field, value).catch(() => {})
   }
 
   /**

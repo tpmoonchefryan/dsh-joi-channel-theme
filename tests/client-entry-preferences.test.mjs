@@ -17,6 +17,7 @@ globalThis.window = {
             IconDarkOutlineMedium: icon,
             IconFollowsystemOutlineMedium: icon,
             IconLightOutlineMedium: icon,
+            Switch: () => null,
           }
         }
         throw new Error(`unexpected client dependency: ${specifier}`)

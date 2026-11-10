@@ -248,3 +248,66 @@ test('a selection made without localStorage is saved when the Host form becomes 
     suits.dispose()
   })
 })
+
+
+test('GWT1: new installation or empty config defaults minimalMode, desktopPet, and antiOcclusion to false', async () => {
+  const scope = new ConfigFormStub(readySnapshot())
+  const host = tokenHost()
+  const suits = new SuitRuntime(host, scope)
+
+  suits.start()
+
+  assert.equal(suits.isMinimalMode, false)
+  assert.equal(suits.isDesktopPet, false)
+  assert.equal(suits.isAntiOcclusion, false)
+  assert.deepEqual(suits.flags, {
+    minimalMode: false,
+    desktopPet: false,
+    antiOcclusion: false,
+  })
+  suits.dispose()
+})
+
+test('feature switches can be toggled and persisted to scope', async () => {
+  const scope = new ConfigFormStub(readySnapshot())
+  const host = tokenHost()
+  const suits = new SuitRuntime(host, scope)
+
+  suits.start()
+  suits.setMinimalMode(true)
+  suits.setAntiOcclusion(true)
+  suits.setDesktopPet(true)
+
+  assert.equal(suits.isMinimalMode, true)
+  assert.equal(suits.isAntiOcclusion, true)
+  assert.equal(suits.isDesktopPet, true)
+  assert.deepEqual(scope.writes, [
+    ['minimalMode', true],
+    ['antiOcclusion', true],
+    ['desktopPet', true],
+  ])
+  suits.dispose()
+})
+
+test('GWT2: minimalMode preserves antiOcclusion value during toggle', async () => {
+  const scope = new ConfigFormStub(readySnapshot())
+  const host = tokenHost()
+  const suits = new SuitRuntime(host, scope)
+
+  suits.start()
+  suits.setAntiOcclusion(true)
+  assert.equal(suits.isAntiOcclusion, true)
+
+  // 开启简约模式
+  suits.setMinimalMode(true)
+  assert.equal(suits.isMinimalMode, true)
+  // antiOcclusion 保持原勾选值
+  assert.equal(suits.isAntiOcclusion, true)
+
+  // 关闭简约模式
+  suits.setMinimalMode(false)
+  assert.equal(suits.isMinimalMode, false)
+  // 恢复后仍为 true
+  assert.equal(suits.isAntiOcclusion, true)
+  suits.dispose()
+})

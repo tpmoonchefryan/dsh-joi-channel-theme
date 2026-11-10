@@ -94,14 +94,34 @@ function visibleCard(): Element | null {
   return chatComposer()?.querySelector(SELECTORS.composerCard) ?? null
 }
 
+/** 对话页布局选项。 */
+export interface ChatOptions {
+  /** 是否开启防遮挡外置（默认 false，开启后视口富余时自适应外置）。 */
+  antiOcclusion?: boolean
+  /** 是否处于简约模式（默认 false，开启后输入框角色隐藏）。 */
+  minimalMode?: boolean
+}
+
 /**
- * 摆放两个 Q 版角色。不在对话页就整组隐藏。
+ * 摆放两个 Q 版角色。不在对话页或开启简约模式时整组隐藏。
  * @param nodes - 角色节点。
  * @param suit - 当前衣装。
  * @param state - 两个角色的表情。
+ * @param options - 布局特性配置。
  * @returns 量测读数，未摆放时 undefined。
  */
-export function placeChat(nodes: ChatNodes, suit: Suit, state: ChatState): ChatMetrics | undefined {
+export function placeChat(
+  nodes: ChatNodes,
+  suit: Suit,
+  state: ChatState,
+  options?: ChatOptions,
+): ChatMetrics | undefined {
+  if (options?.minimalMode) {
+    nodes.joi.style.display = 'none'
+    nodes.zhouxin.style.display = 'none'
+    return undefined
+  }
+
   const card = visibleCard()
   const r = card?.getBoundingClientRect()
   if (r === undefined || r.width === 0) {
@@ -116,8 +136,12 @@ export function placeChat(nodes: ChatNodes, suit: Suit, state: ChatState): ChatM
   const roomRight = (area?.right ?? window.innerWidth) - r.right
   const gapLeft = Math.max(0, Math.min(OUTSET, roomLeft - SIZE))
   const gapRight = Math.max(0, Math.min(OUTSET, roomRight - SIZE))
-  const joiX = roomRight >= SIZE + MIN_GAP ? r.right + gapRight : r.right - INSET - SIZE
-  const zhouxinX = roomLeft >= SIZE + MIN_GAP ? r.left - gapLeft - SIZE : r.left + INSET
+
+  // 默认经典模式：常驻输入框上方内侧两角。
+  // 开启防遮挡（antiOcclusion）且视口两侧留白充裕时，自适应退至卡片外侧。
+  const antiOcclusion = options?.antiOcclusion ?? false
+  const joiX = antiOcclusion && roomRight >= SIZE + MIN_GAP ? r.right + gapRight : r.right - INSET - SIZE
+  const zhouxinX = antiOcclusion && roomLeft >= SIZE + MIN_GAP ? r.left - gapLeft - SIZE : r.left + INSET
   const joiSheet = suit === 'flowers' ? ASSETS.joiFlowers : ASSETS.joiLibrary
 
   seatOne(nodes.joi, joiSheet, CELL[state.joi], joiX, seat - SIZE * FOOT.joi)

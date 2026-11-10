@@ -60,7 +60,10 @@ export function apply(ctx: ClientContext): void {
   suits.start()
   const surfaces = new Surfaces(suits.skin, () => suits.persistence)
 
-  ctx.effect(() => suits.subscribe((skin) => { surfaces.setSuit(skin) }), 'joi-theme: 皮肤 → 装饰层')
+  ctx.effect(() => suits.subscribe((skin, flags) => {
+    surfaces.setSuit(skin)
+    surfaces.setSettings(flags)
+  }), 'joi-theme: 皮肤与设置 → 装饰层')
 
   // 🍊 favicon 也归主题：原生态下要把原图标还回去，否则标签页还挂着橘子。
   ctx.effect(() => {
@@ -94,7 +97,7 @@ function installSuitRow(ctx: ClientContext, suits: SuitRuntime): void {
   let bound: BoundActions<typeof store> | undefined
 
   const preference = (): Preference => ctx.theme.getTheme().preference
-  const sync = (): void => { bound?.sync(suits.skin, preference()) }
+  const sync = (): void => { bound?.sync(suits.skin, preference(), suits.flags) }
 
   ctx.on('theme/change', sync)
   ctx.effect(() => suits.subscribe(sync), 'joi-theme: 换装行同步')
@@ -107,6 +110,9 @@ function installSuitRow(ctx: ClientContext, suits: SuitRuntime): void {
       setSuit: (skin: Skin) => { suits.setSuit(skin) },
       // 明暗转交给 theme 服务。插件不碰 body 属性——那是 presenter 的私产。
       setTheme: (id: Preference) => { ctx.theme.setTheme(id) },
+      setMinimalMode: (on: boolean) => { suits.setMinimalMode(on) },
+      setDesktopPet: (on: boolean) => { suits.setDesktopPet(on) },
+      setAntiOcclusion: (on: boolean) => { suits.setAntiOcclusion(on) },
     }
   }
 

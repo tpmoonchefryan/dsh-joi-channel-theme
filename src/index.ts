@@ -16,15 +16,20 @@ import type { Context } from '@deepseek-ai/cordis'
 // 不产生任何运行时 import。
 import type {} from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
-import { DEFAULT_SKIN, SETTINGS_NAMESPACE, SKINS, SUIT_FIELD, type JoiSettings } from './contract.ts'
+import {
+  DEFAULT_SKIN, DEFAULT_MINIMAL_MODE, DEFAULT_DESKTOP_PET, DEFAULT_ANTI_OCCLUSION,
+  SETTINGS_NAMESPACE, SKINS, SUIT_FIELD, MINIMAL_MODE_FIELD, DESKTOP_PET_FIELD, ANTI_OCCLUSION_FIELD,
+  type JoiSettings,
+} from './contract.ts'
 
 export {
-  DEFAULT_SKIN, DEFAULT_SUIT, SETTINGS_NAMESPACE, SKINS, SUITS, SUIT_FIELD,
+  DEFAULT_SKIN, DEFAULT_SUIT, DEFAULT_MINIMAL_MODE, DEFAULT_DESKTOP_PET, DEFAULT_ANTI_OCCLUSION,
+  SETTINGS_NAMESPACE, SKINS, SUITS, SUIT_FIELD, MINIMAL_MODE_FIELD, DESKTOP_PET_FIELD, ANTI_OCCLUSION_FIELD,
   isSkin, isSuit, type JoiSettings, type Skin, type Suit,
 } from './contract.ts'
 
 /**
- * 衣装偏好的持久 schema，同时是浏览器侧校验用的 wire 信封。
+ * 衣装与特性的持久 schema，同时是浏览器侧校验用的 wire 信封。
  *
  * dsh 0.1.7-rc.1 重写了设置链路：`ctx.settings.register(ns, schema, { base })`
  * 已删除，设置文档改由每个 loader entry **自己导出的 Config** 投影而来。
@@ -39,6 +44,9 @@ export {
  */
 export const Config = z.object({
   [SUIT_FIELD]: z.union([...SKINS]).default(DEFAULT_SKIN).volatile(),
+  [MINIMAL_MODE_FIELD]: z.boolean().default(DEFAULT_MINIMAL_MODE).volatile(),
+  [DESKTOP_PET_FIELD]: z.boolean().default(DEFAULT_DESKTOP_PET).volatile(),
+  [ANTI_OCCLUSION_FIELD]: z.boolean().default(DEFAULT_ANTI_OCCLUSION).volatile(),
 })
 
 /** 历史名（旧版 `register()` 时代的 schema 出口）。 */

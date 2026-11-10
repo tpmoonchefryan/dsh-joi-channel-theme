@@ -27,6 +27,7 @@ import { useState } from 'react'
 // 表现为「换装行悄悄消失、内置外观行顶回来」。取 Medium 与内置外观行同款。
 import {
   IconDarkOutlineMedium, IconFollowsystemOutlineMedium, IconLightOutlineMedium,
+  Switch,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { PALETTE } from '../generated/baseline.ts'
@@ -36,12 +37,18 @@ import type { createSuitRowStore } from './suit-row-store.ts'
 /** app 的内置明暗偏好。 */
 type Preference = 'light' | 'dark' | 'system'
 
-/** 注入的业务面：两个写入动作。 */
+/** 注入的业务面：写入动作。 */
 export interface SuitRowInjected {
   /** 换一套皮肤（两套衣装或原生）。 */
   setSuit: (skin: Skin) => void
   /** 切明暗偏好（转交给 ctx.theme，插件自己不碰 body 属性）。 */
   setTheme: (preference: Preference) => void
+  /** 切换简约模式。 */
+  setMinimalMode: (on: boolean) => void
+  /** 切换轴伊桌宠。 */
+  setDesktopPet: (on: boolean) => void
+  /** 切换 Q版形象防遮挡。 */
+  setAntiOcclusion: (on: boolean) => void
 }
 
 /** 完整 props：store 份额 + 注入面。 */
@@ -169,9 +176,14 @@ const NATIVE_SWATCH = [
  * @param props - 合成后的 slot props。
  * @returns 行的元素树。
  */
-export function SuitRow({ useStore, setSuit, setTheme }: SuitRowProps): React.JSX.Element {
+export function SuitRow({
+  useStore, setSuit, setTheme, setMinimalMode, setDesktopPet, setAntiOcclusion,
+}: SuitRowProps): React.JSX.Element {
   const suit = useStore(s => s.suit)
   const preference = useStore(s => s.preference)
+  const minimalMode = useStore(s => s.minimalMode)
+  const desktopPet = useStore(s => s.desktopPet)
+  const antiOcclusion = useStore(s => s.antiOcclusion)
   // 六个按钮共用一个悬浮标识：两组的 id 不重叠（衣装 vs 明暗偏好）。
   const [hovered, setHovered] = useState<string | null>(null)
   /**
@@ -263,6 +275,50 @@ export function SuitRow({ useStore, setSuit, setTheme }: SuitRowProps): React.JS
             {label}
           </button>
         ))}
+      </div>
+
+      {/* 特性开关：简约模式、轴伊桌宠、防遮挡 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+        {/* 简约模式 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={NATIVE.title}>简约模式</div>
+            <div style={NATIVE.desc}>隐藏输入框两侧角色并启用空心描边底纹</div>
+          </div>
+          <Switch
+            checked={minimalMode}
+            onChange={(next) => { setMinimalMode(next) }}
+            label="简约模式"
+          />
+        </div>
+
+        {/* 轴伊桌宠 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={NATIVE.title}>轴伊桌宠</div>
+            <div style={NATIVE.desc}>在窗口内开启可自由拖拽的 Q 版桌宠（开发中）</div>
+          </div>
+          <Switch
+            checked={desktopPet}
+            onChange={(next) => { setDesktopPet(next) }}
+            label="轴伊桌宠"
+          />
+        </div>
+
+        {/* Q版形象防遮挡：简约模式开启时整行隐藏，但持久化值不丢失（GWT2 契约） */}
+        {!minimalMode && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={NATIVE.title}>Q版形象防遮挡</div>
+              <div style={NATIVE.desc}>输入框两侧有空间时角色自动外移，避免遮挡正文</div>
+            </div>
+            <Switch
+              checked={antiOcclusion}
+              onChange={(next) => { setAntiOcclusion(next) }}
+              label="Q版形象防遮挡"
+            />
+          </div>
+        )}
       </div>
     </div>
   )
