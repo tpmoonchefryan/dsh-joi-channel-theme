@@ -59,6 +59,7 @@ export function apply(ctx: ClientContext): void {
   const suits = new SuitRuntime(ctx.theme, scope)
   suits.start()
   const surfaces = new Surfaces(suits.skin, () => suits.persistence)
+  surfaces.setSettings(suits.flags)
 
   ctx.effect(() => suits.subscribe((skin, flags) => {
     surfaces.setSuit(skin)
@@ -111,7 +112,6 @@ function installSuitRow(ctx: ClientContext, suits: SuitRuntime): void {
       // 明暗转交给 theme 服务。插件不碰 body 属性——那是 presenter 的私产。
       setTheme: (id: Preference) => { ctx.theme.setTheme(id) },
       setMinimalMode: (on: boolean) => { suits.setMinimalMode(on) },
-      setDesktopPet: (on: boolean) => { suits.setDesktopPet(on) },
       setAntiOcclusion: (on: boolean) => { suits.setAntiOcclusion(on) },
     }
   }

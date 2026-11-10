@@ -13,7 +13,7 @@
  * 快照里的 token 逐条 setProperty 到 body 的行内样式上——行内优先级高过
  * design-platform.css 的 body{} 规则，而且插件 dispose 时 presenter 自己收回。
  */
-import { PALETTE, RAMP, SHIKI, TEXTURE, TOKEN_MAP, type Suit } from '../generated/baseline.ts'
+import { MINIMAL_TEXTURE, PALETTE, RAMP, SHIKI, TEXTURE, TOKEN_MAP, type Suit } from '../generated/baseline.ts'
 import { ASSETS } from '../generated/assets.ts'
 
 /** 一个 token 在明暗两态下的取值。overrideTokens 要求两态都给。 */
@@ -32,7 +32,7 @@ export type TokenOverrides = Record<string, TokenModes>
  * @param suit - 衣装。
  * @returns 可直接交给 ctx.theme.overrideTokens 的覆盖表。
  */
-export function tokensFor(suit: Suit): TokenOverrides {
+export function tokensFor(suit: Suit, minimalMode = false): TokenOverrides {
   const out: TokenOverrides = {}
 
   // ① 中性色阶。色阶本身与明暗无关（明暗差异体现在 alias 引用哪一级），
@@ -72,7 +72,7 @@ export function tokensFor(suit: Suit): TokenOverrides {
   // 底纹图案、描边色、气泡文字色。把它们也做成 token 的好处是样式表因此
   // 完全静态——换装只换 token，一行 CSS 都不用重建，也就没有「样式表与
   // 当前衣装不同步」这一类状态可言。
-  Object.assign(out, privateVars(suit))
+  Object.assign(out, privateVars(suit, minimalMode))
 
   return out
 }
@@ -105,9 +105,17 @@ function haloThin(ground: string): string {
  * @param suit - 衣装。
  * @returns 私有变量的明暗值对。
  */
-function privateVars(suit: Suit): TokenOverrides {
+function privateVars(suit: Suit, minimalMode: boolean): TokenOverrides {
   const l = PALETTE[suit].light
   const d = PALETTE[suit].dark
+  const texture = (mode: 'light' | 'dark'): string => {
+    if (!minimalMode) return textureImage(suit, mode)
+    const outline = MINIMAL_TEXTURE[suit][mode]
+    return suit === 'library' ? `${outline}, ${textureImage(suit, mode)}` : outline
+  }
+  const textureSize = minimalMode
+    ? `${MINIMAL_TEXTURE[suit].tile}${suit === 'library' ? `, ${TEXTURE[suit].tile}` : ''}`
+    : TEXTURE[suit].tile
   const pair = (light: string | undefined, dark: string | undefined): TokenModes =>
     ({ light: light ?? 'transparent', dark: dark ?? 'transparent' })
 
@@ -144,8 +152,8 @@ function privateVars(suit: Suit): TokenOverrides {
     '--dsw-alias-state-success-primary': pair(SHIKI[suit].light.string, SHIKI[suit].dark.string),
     '--dsh-state-ongoing': pair(l.tangerine, d.tangerine),
     // 底纹的整张图案与瓦片尺寸。做成变量后 .joi-tex 那条规则一次写死。
-    '--joi-texture-image': { light: textureImage(suit, 'light'), dark: textureImage(suit, 'dark') },
-    '--joi-texture-size': { light: TEXTURE[suit].tile, dark: TEXTURE[suit].tile },
+    '--joi-texture-image': { light: texture('light'), dark: texture('dark') },
+    '--joi-texture-size': { light: textureSize, dark: textureSize },
     // 立绘边缘光：浅色下 Library 的白开衫贴近白底会糊，深色下则要一圈冷光把她从背景里拉出来。
     '--joi-rim': {
       light: 'drop-shadow(0 0 1px rgba(70,80,100,.30)) drop-shadow(0 2px 10px rgba(70,80,100,.13))',

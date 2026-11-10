@@ -45,8 +45,6 @@ export interface SuitRowInjected {
   setTheme: (preference: Preference) => void
   /** 切换简约模式。 */
   setMinimalMode: (on: boolean) => void
-  /** 切换轴伊桌宠。 */
-  setDesktopPet: (on: boolean) => void
   /** 切换 Q版形象防遮挡。 */
   setAntiOcclusion: (on: boolean) => void
 }
@@ -177,12 +175,11 @@ const NATIVE_SWATCH = [
  * @returns 行的元素树。
  */
 export function SuitRow({
-  useStore, setSuit, setTheme, setMinimalMode, setDesktopPet, setAntiOcclusion,
+  useStore, setSuit, setTheme, setMinimalMode, setAntiOcclusion,
 }: SuitRowProps): React.JSX.Element {
   const suit = useStore(s => s.suit)
   const preference = useStore(s => s.preference)
   const minimalMode = useStore(s => s.minimalMode)
-  const desktopPet = useStore(s => s.desktopPet)
   const antiOcclusion = useStore(s => s.antiOcclusion)
   // 六个按钮共用一个悬浮标识：两组的 id 不重叠（衣装 vs 明暗偏好）。
   const [hovered, setHovered] = useState<string | null>(null)
@@ -277,7 +274,7 @@ export function SuitRow({
         ))}
       </div>
 
-      {/* 特性开关：简约模式、轴伊桌宠、防遮挡 */}
+      {/* 特性开关：简约模式、防遮挡 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
         {/* 简约模式 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
@@ -289,19 +286,6 @@ export function SuitRow({
             checked={minimalMode}
             onChange={(next) => { setMinimalMode(next) }}
             label="简约模式"
-          />
-        </div>
-
-        {/* 轴伊桌宠 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={NATIVE.title}>轴伊桌宠</div>
-            <div style={NATIVE.desc}>在窗口内开启可自由拖拽的 Q 版桌宠（开发中）</div>
-          </div>
-          <Switch
-            checked={desktopPet}
-            onChange={(next) => { setDesktopPet(next) }}
-            label="轴伊桌宠"
           />
         </div>
 

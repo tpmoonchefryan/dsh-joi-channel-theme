@@ -6,7 +6,7 @@
  */
 import type { ActionsDecl, BakedActions, StoreHandle } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  DEFAULT_SKIN, DEFAULT_MINIMAL_MODE, DEFAULT_DESKTOP_PET, DEFAULT_ANTI_OCCLUSION,
+  DEFAULT_SKIN, DEFAULT_MINIMAL_MODE, DEFAULT_ANTI_OCCLUSION,
   type Skin,
 } from '../contract.ts'
 
@@ -16,7 +16,6 @@ export type Preference = 'light' | 'dark' | 'system'
 /** 特性开关集合。 */
 export interface SuitRowFlags {
   minimalMode?: boolean
-  desktopPet?: boolean
   antiOcclusion?: boolean
 }
 
@@ -28,8 +27,6 @@ export interface SuitRowState {
   preference: Preference
   /** 简约模式。 */
   minimalMode: boolean
-  /** 轴伊桌宠开关。 */
-  desktopPet: boolean
   /** Q版形象防遮挡开关。 */
   antiOcclusion: boolean
 }
@@ -120,7 +117,6 @@ export function createSuitRowStore(): StoreHandle<SuitRowState, SuitRowActions> 
       suit: DEFAULT_SKIN,
       preference: 'system',
       minimalMode: DEFAULT_MINIMAL_MODE,
-      desktopPet: DEFAULT_DESKTOP_PET,
       antiOcclusion: DEFAULT_ANTI_OCCLUSION,
     }),
     actions: {
@@ -129,7 +125,6 @@ export function createSuitRowStore(): StoreHandle<SuitRowState, SuitRowActions> 
         d.preference = preference
         if (flags) {
           if (flags.minimalMode !== undefined) d.minimalMode = flags.minimalMode
-          if (flags.desktopPet !== undefined) d.desktopPet = flags.desktopPet
           if (flags.antiOcclusion !== undefined) d.antiOcclusion = flags.antiOcclusion
         }
       },

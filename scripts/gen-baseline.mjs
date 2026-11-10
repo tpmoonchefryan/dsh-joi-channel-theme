@@ -32,6 +32,23 @@ const ramp = {
   library: b.neutralRamp.library,
 }
 const texture = { flowers: strip(b.texture.flowers), library: strip(b.texture.library) }
+// 简约模式复用设计封版的无手轴芯线稿；数据 URI 在构建时生成，运行期不依赖文件。
+const minimalTexture = {}
+for (const suit of ['flowers', 'library']) {
+  const spec = b.minimalTexture[suit]
+  minimalTexture[suit] = { tile: spec.tile }
+  for (const mode of ['light', 'dark']) {
+    const source = readFileSync(resolve(ROOT, spec[mode].source), 'utf8')
+    const group = source.match(/<g\b[\s\S]*<\/g>/)?.[0]
+    if (!group) throw new Error(`minimalTexture.${suit}.${mode} 缺少 SVG 线稿`)
+    const figure = group.replace(/stroke="#[A-Fa-f0-9]+"/, `stroke="${spec[mode].color}"`)
+    const figures = spec.angles.map((angle, i) =>
+      `<g transform="translate(${i * 128} 0)">${figure.replace('rotate(-15 64 64)', `rotate(${angle} 64 64)`)}</g>`,
+    ).join('')
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${128 * spec.angles.length} 128" fill="none"><g opacity="${spec[mode].opacity}">${figures}</g></svg>`
+    minimalTexture[suit][mode] = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
+  }
+}
 const shiki = { flowers: strip(b.shiki.flowers), library: strip(b.shiki.library) }
 const ripeness = { stops: b.ripeness.stops, leaf: b.ripeness.leaf, stem: b.ripeness.stem }
 const geometry = {
@@ -74,6 +91,9 @@ export const RAMP = ${j(ramp)} as const
 
 /** 底纹参数：Flowers 点阵（衣料樱花印花）/ Library 方格纸（裙面制图线）。 */
 export const TEXTURE = ${j(texture)} as const
+
+/** 简约模式轴芯空心描边平铺：取值与线稿来自 design/ 基线。 */
+export const MINIMAL_TEXTURE = ${j(minimalTexture)} as const
 
 /**
  * 语法配色：shiki.css 是独立表，不引用任何 alias，色阶覆盖对它无效，

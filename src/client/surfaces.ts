@@ -15,7 +15,7 @@ import {
   brandSurgery, heroComposer, placeHero, trackHero, undoBrandSurgery,
   type HeroMetrics, type HeroNodes,
 } from './hero.ts'
-import { applyHalo, placeChat, type ChatMetrics, type ChatNodes, type ChatState, type ChatOptions } from './chat.ts'
+import { applyHalo, placeChat, type ChatMetrics, type ChatNodes, type ChatState } from './chat.ts'
 import { paintMeter, unpaintMeter } from './meter.ts'
 import {
   StateTracker, paintFeedback, paintOnboarding, paintSubagentWhales,
@@ -23,7 +23,7 @@ import {
 } from './activity.ts'
 import { ASSETS } from '../generated/assets.ts'
 import type { Suit } from '../generated/baseline.ts'
-import { DEFAULT_MINIMAL_MODE, DEFAULT_DESKTOP_PET, DEFAULT_ANTI_OCCLUSION } from '../contract.ts'
+import { DEFAULT_MINIMAL_MODE, DEFAULT_ANTI_OCCLUSION } from '../contract.ts'
 import type { SuitFlags } from './suit.ts'
 
 /** 调试与回归断言读的量测快照。 */
@@ -117,7 +117,6 @@ export class Surfaces {
   private suit: Suit
   private flags: SuitFlags = {
     minimalMode: DEFAULT_MINIMAL_MODE,
-    desktopPet: DEFAULT_DESKTOP_PET,
     antiOcclusion: DEFAULT_ANTI_OCCLUSION,
   }
   private state: ChatState = { joi: 'info', zhouxin: 'info' }
@@ -205,13 +204,12 @@ export class Surfaces {
   }
 
   /**
-   * 更新特性开关（简约模式、桌宠、防遮挡）。
+   * 更新特性开关（简约模式、防遮挡）。
    * @param flags - 开关增量。
    */
   setSettings(flags?: Partial<SuitFlags>): void {
     if (!flags) return
     if (flags.minimalMode !== undefined) this.flags.minimalMode = flags.minimalMode
-    if (flags.desktopPet !== undefined) this.flags.desktopPet = flags.desktopPet
     if (flags.antiOcclusion !== undefined) this.flags.antiOcclusion = flags.antiOcclusion
     this.loop.schedule()
   }
