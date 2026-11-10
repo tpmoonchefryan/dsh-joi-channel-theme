@@ -48,10 +48,24 @@ export const SETTINGS_NAMESPACE = 'joi-channel-theme'
 /** 承载衣装选择的字段名。 */
 export const SUIT_FIELD = 'suit'
 
+/** 承载简约模式的字段名（默认 false）。 */
+export const MINIMAL_MODE_FIELD = 'minimalMode'
+
+/** 承载 Q 版形象防遮挡开关的字段名（默认 false）。 */
+export const ANTI_OCCLUSION_FIELD = 'antiOcclusion'
+
+/** 首装默认值。全部独立且默认关闭。 */
+export const DEFAULT_MINIMAL_MODE = false
+export const DEFAULT_ANTI_OCCLUSION = false
+
 /** 本命名空间的持久段。 */
 export interface JoiSettings {
   /** 用户选中的皮肤（两套衣装或原生）。 */
   suit: Skin
+  /** 简约模式：隐藏输入框两侧角色并启用空心描边底纹。 */
+  minimalMode?: boolean
+  /** Q版形象防遮挡：有空间时角色外移，避免遮挡正文。 */
+  antiOcclusion?: boolean
 }
 
 /**

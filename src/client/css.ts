@@ -95,6 +95,9 @@ export const ID = 'joi-theme'
 /** 贴了底纹的表面所带的类名。 */
 export const TEX_CLASS = 'joi-tex'
 
+/** 仅已有对话页在简约模式下使用的底纹标记。 */
+export const MINIMAL_CLASS = 'joi-minimal'
+
 /** 与角色浮层重叠、需要加描边保可读性的文字块所带的类名。 */
 export const HALO_CLASS = 'joi-halo'
 
@@ -201,6 +204,12 @@ ${SELECTORS.trajectory} {
 /* 滚动面里那张表自绘 layer-1 白底，会把刚贴上的纹理整片盖回去。
    让它透明，纹理才透得出来；行的斑马纹在 tr/td 上，不受影响。 */
 ${SELECTORS.trajectory} > table { background: transparent !important; }
+
+/* 新对话页始终使用原底纹。此标记只在已有对话页附着，并在路由切换时撤回。 */
+.${TEX_CLASS}.${MINIMAL_CLASS}, ${SELECTORS.trajectory}.${MINIMAL_CLASS} {
+  background-image: var(--joi-minimal-texture-image) !important;
+  background-size: var(--joi-minimal-texture-size) !important;
+}
 `
 }
 

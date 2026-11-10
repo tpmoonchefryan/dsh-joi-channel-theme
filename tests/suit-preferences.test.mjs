@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { SuitRuntime } from '../src/client/suit.ts'
+import { tokensFor } from '../src/client/tokens.ts'
+import { Config } from '../lib/index.js'
 
 const LOCAL_KEY = 'dsh-joi-channel-theme.suit'
 
@@ -39,7 +41,7 @@ class ConfigFormStub {
   }
 }
 
-function readySnapshot({ value = { suit: 'flowers' }, user = {}, base = { suit: 'flowers' }, writable = true } = {}) {
+function readySnapshot({ value = { suit: 'flowers', minimalMode: false, antiOcclusion: false }, user = {}, base = { suit: 'flowers' }, writable = true } = {}) {
   return { status: 'ready', value, user, base, revision: 0, writable, mode: 'host' }
 }
 
@@ -248,3 +250,180 @@ test('a selection made without localStorage is saved when the Host form becomes 
     suits.dispose()
   })
 })
+
+
+test('GWT1: new installation or empty config defaults minimalMode and antiOcclusion to false', async () => {
+  const scope = new ConfigFormStub(readySnapshot())
+  const host = tokenHost()
+  const suits = new SuitRuntime(host, scope)
+
+  suits.start()
+
+  assert.equal(suits.isMinimalMode, false)
+  assert.equal(suits.isAntiOcclusion, false)
+  assert.deepEqual(suits.flags, {
+    minimalMode: false,
+    antiOcclusion: false,
+  })
+  suits.dispose()
+})
+
+test('feature switches can be toggled and persisted to scope', async () => {
+  const scope = new ConfigFormStub(readySnapshot())
+  const host = tokenHost()
+  const suits = new SuitRuntime(host, scope)
+
+  suits.start()
+  suits.setMinimalMode(true)
+  suits.setAntiOcclusion(true)
+
+  assert.equal(suits.isMinimalMode, true)
+  assert.equal(suits.isAntiOcclusion, true)
+  assert.deepEqual(scope.writes, [
+    ['minimalMode', true],
+    ['antiOcclusion', true],
+  ])
+  suits.dispose()
+})
+
+test('GWT2: minimalMode preserves antiOcclusion value during toggle', async () => {
+  const scope = new ConfigFormStub(readySnapshot())
+  const host = tokenHost()
+  const suits = new SuitRuntime(host, scope)
+
+  suits.start()
+  suits.setAntiOcclusion(true)
+  assert.equal(suits.isAntiOcclusion, true)
+
+  // 开启简约模式
+  suits.setMinimalMode(true)
+  assert.equal(suits.isMinimalMode, true)
+  // antiOcclusion 保持原勾选值
+  assert.equal(suits.isAntiOcclusion, true)
+
+  // 关闭简约模式
+  suits.setMinimalMode(false)
+  assert.equal(suits.isMinimalMode, false)
+  // 恢复后仍为 true
+  assert.equal(suits.isAntiOcclusion, true)
+  suits.dispose()
+})
+
+test('the Host schema exposes only the implemented preference fields', () => {
+  assert.deepEqual(Object.keys(Config.dict).sort(), ['antiOcclusion', 'minimalMode', 'suit'])
+})
+
+for (const [field, setter] of [['minimalMode', 'setMinimalMode'], ['antiOcclusion', 'setAntiOcclusion']]) {
+  test(`${field} selected during loading is saved when the Host becomes writable`, async () => {
+    const scope = new ConfigFormStub(loadingSnapshot)
+    const suits = new SuitRuntime(tokenHost(), scope)
+    suits.start()
+    suits[setter](true)
+    assert.equal(suits.flags[field], true)
+    assert.deepEqual(scope.writes, [])
+
+    scope.publish(readySnapshot({ writable: false }))
+    assert.equal(suits.flags[field], true)
+    assert.deepEqual(scope.writes, [])
+
+    scope.publish(readySnapshot())
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(suits.flags[field], true)
+    assert.equal(scope.snapshot.user[field], true)
+    assert.deepEqual(scope.writes, [[field, true]])
+
+    scope.publish(readySnapshot({ user: { [field]: false } }))
+    assert.equal(suits.flags[field], false)
+    suits.dispose()
+  })
+
+  test(`${field} preserves the last click while an earlier write is pending`, async () => {
+    const scope = new ConfigFormStub(readySnapshot())
+    const pending = []
+    scope.set = (key, value) => {
+      scope.writes.push([key, value])
+      return new Promise(resolve => pending.push(() => {
+        scope.publish({
+          ...scope.snapshot,
+          user: { ...scope.snapshot.user, [key]: value },
+          value: { ...scope.snapshot.value, [key]: value },
+          revision: scope.snapshot.revision + 1,
+        })
+        resolve(true)
+      }))
+    }
+    const suits = new SuitRuntime(tokenHost(), scope)
+    suits.start()
+    suits[setter](true)
+    suits[setter](false)
+    assert.deepEqual(scope.writes, [[field, true]])
+    pending.shift()()
+    assert.equal(suits.flags[field], false)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(scope.writes, [[field, true], [field, false]])
+    pending.shift()()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(suits.flags[field], false)
+    assert.equal(scope.snapshot.user[field], false)
+    suits.dispose()
+  })
+
+  test(`${field} does not repeatedly write a rejected Host revision`, async () => {
+    const scope = new ConfigFormStub(readySnapshot())
+    scope.set = async (key, value) => { scope.writes.push([key, value]); return false }
+    const suits = new SuitRuntime(tokenHost(), scope)
+    suits.start()
+    suits[setter](true)
+    await new Promise(resolve => setImmediate(resolve))
+    scope.publish(scope.snapshot)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(scope.writes, [[field, true]])
+    assert.equal(suits.flags[field], true)
+    suits.dispose()
+  })
+}
+
+for (const suit of ['flowers', 'library']) {
+  test(`${suit} minimal texture follows the approved light/dark outlines and restores`, () => {
+    const host = tokenHost()
+    const scope = new ConfigFormStub(readySnapshot({ value: { suit }, user: { suit } }))
+    const runtime = new SuitRuntime(host, scope)
+    runtime.start()
+    const classic = host.layers.get('dsh-joi-channel-theme')['--joi-texture-image']
+    runtime.setMinimalMode(true, false)
+    const minimal = host.layers.get('dsh-joi-channel-theme')['--joi-minimal-texture-image']
+    assert.deepEqual(host.layers.get('dsh-joi-channel-theme')['--joi-texture-image'], classic,
+      'the global background stays classic while minimal mode changes')
+    assert.equal(host.layers.get('dsh-joi-channel-theme')['--joi-minimal-texture-size'].light,
+      suit === 'flowers' ? '256px 128px' : '128px 128px, 22px 22px, 22px 22px')
+    for (const mode of ['light', 'dark']) {
+      const image = minimal[mode]
+      assert.notEqual(image, classic[mode])
+      const uri = image.match(/url\("data:image\/svg\+xml,([^\"]+)"\)/)?.[1]
+      assert.ok(uri, 'outline SVG is embedded')
+      const svg = decodeURIComponent(uri)
+      assert.match(svg, /fill="none"/)
+      const placements = [...svg.matchAll(/translate\(([\d.]+) ([\d.]+)\) scale\(([\d.]+)\)/g)]
+      assert.equal(placements.length, suit === 'flowers' ? 2 : 1)
+      assert.equal(128 * Number(placements[0][3]), 32, 'motifs are 32px, independent of the tile pitch')
+      assert.equal(Number(placements[0][1]), 48, 'the smaller motif is centered in its 128px cell')
+      assert.equal(Number(placements[0][2]), 48)
+      if (suit === 'flowers') assert.equal(Number(placements[1][1]) - Number(placements[0][1]), 128)
+      assert.match(svg, /rotate\(-15 64 64\)/)
+      if (suit === 'flowers') assert.match(svg, /rotate\(15 64 64\)/)
+      if (mode === 'dark') {
+        assert.match(svg, /opacity="0\.34"/)
+        assert.ok(svg.includes(suit === 'flowers' ? '#C8BCD0' : '#C0CCDF'))
+      }
+      assert.equal(image.includes('linear-gradient'), suit === 'library')
+    }
+    runtime.setMinimalMode(false, false)
+    assert.deepEqual(host.layers.get('dsh-joi-channel-theme'), tokensFor(suit))
+    runtime.setEnabled(false)
+    runtime.setMinimalMode(true, false)
+    assert.equal(host.layers.size, 0)
+    runtime.setEnabled(true)
+    assert.deepEqual(host.layers.get('dsh-joi-channel-theme'), tokensFor(suit))
+    runtime.dispose()
+  })
+}

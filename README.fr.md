@@ -241,6 +241,15 @@ demande aucune autorisation de build.
 
 ## Garde-robe & natif
 
+### Options d’apparence de la version 0.2.0
+
+Les deux options sont désactivées par défaut :
+
+- **Mode minimal (`简约模式`)** : masque les personnages du champ de saisie uniquement dans les conversations existantes et utilise des motifs de 32px espacés de 128px. L’écran de nouvelle conversation conserve son fond, son portrait et sa baleine.
+- **Anti-masquage (`Q版形象防遮挡`)** : déplace les personnages à l’extérieur du champ lorsqu’il y a assez de place. Le mode minimal masque cette option sans en perdre la valeur.
+
+L’hôte enregistre les préférences et les restaure après actualisation. Les choix effectués au démarrage sont enregistrés dès que les paramètres deviennent modifiables.
+
 La **garde-robe** se trouve dans Réglages → Général → 换装 : trois cartes côte à côte ;
 choisissez-en une et la pièce suit. La moitié basse conserve les trois cases natives
 clair / sombre / système — la luminosité appartient toujours à l'application.

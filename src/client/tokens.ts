@@ -13,7 +13,7 @@
  * 快照里的 token 逐条 setProperty 到 body 的行内样式上——行内优先级高过
  * design-platform.css 的 body{} 规则，而且插件 dispose 时 presenter 自己收回。
  */
-import { PALETTE, RAMP, SHIKI, TEXTURE, TOKEN_MAP, type Suit } from '../generated/baseline.ts'
+import { MINIMAL_TEXTURE, PALETTE, RAMP, SHIKI, TEXTURE, TOKEN_MAP, type Suit } from '../generated/baseline.ts'
 import { ASSETS } from '../generated/assets.ts'
 
 /** 一个 token 在明暗两态下的取值。overrideTokens 要求两态都给。 */
@@ -108,6 +108,11 @@ function haloThin(ground: string): string {
 function privateVars(suit: Suit): TokenOverrides {
   const l = PALETTE[suit].light
   const d = PALETTE[suit].dark
+  const minimalTexture = (mode: 'light' | 'dark'): string => {
+    const outline = MINIMAL_TEXTURE[suit][mode]
+    return suit === 'library' ? `${outline}, ${textureImage(suit, mode)}` : outline
+  }
+  const minimalTextureSize = `${MINIMAL_TEXTURE[suit].tile}${suit === 'library' ? `, ${TEXTURE[suit].tile}` : ''}`
   const pair = (light: string | undefined, dark: string | undefined): TokenModes =>
     ({ light: light ?? 'transparent', dark: dark ?? 'transparent' })
 
@@ -146,6 +151,9 @@ function privateVars(suit: Suit): TokenOverrides {
     // 底纹的整张图案与瓦片尺寸。做成变量后 .joi-tex 那条规则一次写死。
     '--joi-texture-image': { light: textureImage(suit, 'light'), dark: textureImage(suit, 'dark') },
     '--joi-texture-size': { light: TEXTURE[suit].tile, dark: TEXTURE[suit].tile },
+    // 简约底纹只由已有对话页的表面消费，不替换全局或新对话页的底纹。
+    '--joi-minimal-texture-image': { light: minimalTexture('light'), dark: minimalTexture('dark') },
+    '--joi-minimal-texture-size': { light: minimalTextureSize, dark: minimalTextureSize },
     // 立绘边缘光：浅色下 Library 的白开衫贴近白底会糊，深色下则要一圈冷光把她从背景里拉出来。
     '--joi-rim': {
       light: 'drop-shadow(0 0 1px rgba(70,80,100,.30)) drop-shadow(0 2px 10px rgba(70,80,100,.13))',

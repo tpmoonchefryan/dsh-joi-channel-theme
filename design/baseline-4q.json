@@ -275,6 +275,43 @@
    ]
   }
  },
+ "minimalTexture": {
+  "flowers": {
+   "tile": "256px 128px",
+   "motifSize": 32,
+   "angles": [
+    -15,
+    15
+   ],
+   "light": {
+    "source": "stuff/Stuff for Use/Zhouxin Outline.svg",
+    "color": "#E59880",
+    "opacity": 0.5
+   },
+   "dark": {
+    "source": "stuff/Stuff for Use/Zhouxin Outline.svg",
+    "color": "#C8BCD0",
+    "opacity": 0.34
+   }
+  },
+  "library": {
+   "tile": "128px 128px",
+   "motifSize": 32,
+   "angles": [
+    -15
+   ],
+   "light": {
+    "source": "stuff/Stuff for Use/Zhouxin Outline.svg",
+    "color": "#9AA6B8",
+    "opacity": 0.62
+   },
+   "dark": {
+    "source": "stuff/Stuff for Use/Zhouxin Outline.svg",
+    "color": "#C0CCDF",
+    "opacity": 0.34
+   }
+  }
+ },
  "geometry": {
   "$comment": "全部为实测值，参照视口 1520×960。",
   "portrait": {

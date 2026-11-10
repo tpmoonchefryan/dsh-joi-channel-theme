@@ -232,6 +232,15 @@ and re-run. The npm package ships prebuilt and needs no build permission.
 
 ## Wardrobe & Native
 
+### Appearance switches in 0.2.0
+
+Both switches are off by default:
+
+- **Minimal mode (`简约模式`)** hides the composer companions only in existing conversations and uses 32px outline motifs spaced 128px apart. The new-conversation screen keeps its original background, portrait and whale.
+- **Anti-occlusion (`Q版形象防遮挡`)** moves companions outside the composer when there is enough room. Minimal mode hides this setting row while preserving its value.
+
+Preferences are saved by the host and restored after refresh. Choices made during startup are saved once settings become writable.
+
 **Wardrobe** lives in Settings → General → 换装: three cards side by side; pick one and
 the room follows. The lower half keeps the native light / dark / system cubes —
 brightness always belongs to the app.

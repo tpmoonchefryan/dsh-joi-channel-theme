@@ -9,7 +9,7 @@
  * 一律隐藏对应装饰，绝不抛给 app。装饰不出现是可接受的降级，
  * 把原生界面弄坏不是。
  */
-import { HALO_CLASS, ID, SELECTORS, TEX_CLASS, stylesheet } from './css.ts'
+import { HALO_CLASS, ID, MINIMAL_CLASS, SELECTORS, TEX_CLASS, stylesheet } from './css.ts'
 import { OwnedNodes, framed } from './dom.ts'
 import {
   brandSurgery, heroComposer, placeHero, trackHero, undoBrandSurgery,
@@ -23,6 +23,8 @@ import {
 } from './activity.ts'
 import { ASSETS } from '../generated/assets.ts'
 import type { Suit } from '../generated/baseline.ts'
+import { DEFAULT_MINIMAL_MODE, DEFAULT_ANTI_OCCLUSION } from '../contract.ts'
+import type { SuitFlags } from './suit.ts'
 
 /** 调试与回归断言读的量测快照。 */
 export interface Metrics {
@@ -113,6 +115,10 @@ export class Surfaces {
   private follow: number | undefined
   private readonly observer: MutationObserver
   private suit: Suit
+  private flags: SuitFlags = {
+    minimalMode: DEFAULT_MINIMAL_MODE,
+    antiOcclusion: DEFAULT_ANTI_OCCLUSION,
+  }
   private state: ChatState = { joi: 'info', zhouxin: 'info' }
   /** 过程态要跨帧记忆才能认出「刚跑完」。 */
   private readonly tracker = new StateTracker()
@@ -198,6 +204,17 @@ export class Surfaces {
   }
 
   /**
+   * 更新特性开关（简约模式、防遮挡）。
+   * @param flags - 开关增量。
+   */
+  setSettings(flags?: Partial<SuitFlags>): void {
+    if (!flags) return
+    if (flags.minimalMode !== undefined) this.flags.minimalMode = flags.minimalMode
+    if (flags.antiOcclusion !== undefined) this.flags.antiOcclusion = flags.antiOcclusion
+    this.loop.schedule()
+  }
+
+  /**
    * 改两个角色的表情。
    * @param patch - 要改的部分。
    */
@@ -247,6 +264,7 @@ export class Surfaces {
       el.style.display = 'none'
     }
     for (const el of document.querySelectorAll(`.${TEX_CLASS}`)) el.classList.remove(TEX_CLASS)
+    for (const el of document.querySelectorAll(`.${MINIMAL_CLASS}`)) el.classList.remove(MINIMAL_CLASS)
     for (const el of document.querySelectorAll(`.${HALO_CLASS}`)) el.classList.remove(HALO_CLASS)
     unpaintMeter()
     unpaintSubagentWhales()
@@ -312,11 +330,14 @@ export class Surfaces {
     }
     // 表情跟着真实运行状态走；手动置态时让位给人。
     if (!this.manual) this.state = this.tracker.read()
-    this.textured = paintTexture(this.baseProbe)
+    const minimalMode = this.flags.minimalMode
+      && document.querySelector(SELECTORS.composerStack) !== null
+      && heroComposer() === null
+    this.textured = paintTexture(this.baseProbe, minimalMode)
     const hero = placeHero(this.hero, this.suit)
     if (hero === undefined) this.stopFollow()
     else this.startFollow()
-    const chat = placeChat(this.chat, this.suit, this.state)
+    const chat = placeChat(this.chat, this.suit, this.state, this.flags)
     applyHalo(this.chat)
     const contextPercent = paintMeter()
     const feedbackSpots = paintFeedback()
@@ -379,7 +400,7 @@ function isOpaque(color: string): boolean {
  * @param probe - 背景色写成 var(--dsw-alias-bg-base) 的隐藏节点。
  * @returns 贴上底纹的表面数。
  */
-function paintTexture(probe: HTMLElement): number {
+function paintTexture(probe: HTMLElement, minimalMode: boolean): number {
   const base = getComputedStyle(probe).backgroundColor
   const keep = new Set<Element>()
   if (isOpaque(base)) {
@@ -398,5 +419,10 @@ function paintTexture(probe: HTMLElement): number {
   // 已有类名就不再写：classList.add 即便值不变也会改写 class 属性、
   // 触发 MutationObserver，等于每帧自己唤醒自己。
   for (const el of keep) if (!el.classList.contains(TEX_CLASS)) el.classList.add(TEX_CLASS)
+  const minimal = new Set(minimalMode ? [...keep, ...document.querySelectorAll(SELECTORS.trajectory)] : [])
+  for (const el of document.querySelectorAll(`.${MINIMAL_CLASS}`)) {
+    if (!minimal.has(el)) el.classList.remove(MINIMAL_CLASS)
+  }
+  for (const el of minimal) if (!el.classList.contains(MINIMAL_CLASS)) el.classList.add(MINIMAL_CLASS)
   return keep.size
 }

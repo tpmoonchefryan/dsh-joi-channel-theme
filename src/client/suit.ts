@@ -11,7 +11,12 @@
  *     本插件 ConfigForm，并兼容迁移此前存在 localStorage 的选择。
  */
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { DEFAULT_SKIN, DEFAULT_SUIT, SUIT_FIELD, isSkin, type JoiSettings, type Skin, type Suit } from '../contract.ts'
+import {
+  DEFAULT_SKIN, DEFAULT_SUIT, SUIT_FIELD,
+  MINIMAL_MODE_FIELD, ANTI_OCCLUSION_FIELD,
+  DEFAULT_MINIMAL_MODE, DEFAULT_ANTI_OCCLUSION,
+  isSkin, type JoiSettings, type Skin, type Suit,
+} from '../contract.ts'
 import { tokensFor, type TokenOverrides } from './tokens.ts'
 
 /** 挂载/卸载一层 token 覆盖的最小面，便于测试替身。 */
@@ -34,14 +39,31 @@ const LAYER = 'dsh-joi-channel-theme'
  */
 const LOCAL_KEY = 'dsh-joi-channel-theme.suit'
 
+/** 特性开关快照。 */
+export interface SuitFlags {
+  minimalMode: boolean
+  antiOcclusion: boolean
+}
+
+type FlagField = keyof SuitFlags
+const FLAG_FIELDS = [MINIMAL_MODE_FIELD, ANTI_OCCLUSION_FIELD] as const
+
 /** 衣装变化的订阅者。 */
-export type SuitListener = (skin: Skin) => void
+export type SuitListener = (skin: Skin, flags: SuitFlags) => void
 
 /**
  * 衣装运行时：持有当前衣装、唯一的 token 层，以及偏好读写。
  */
 export class SuitRuntime {
   private current: Skin = DEFAULT_SKIN
+  private readonly currentFlags: SuitFlags = {
+    minimalMode: DEFAULT_MINIMAL_MODE,
+    antiOcclusion: DEFAULT_ANTI_OCCLUSION,
+  }
+  /** 尚未被 Host 确认的选择跨 loading/只读快照保留，与衣装相同。 */
+  private readonly pendingLocalFlags = new Map<FlagField, boolean>()
+  private readonly pendingFlagWrites = new Set<FlagField>()
+  private readonly lastFlagWriteAttempts = new Map<FlagField, { value: boolean, revision: number | undefined }>()
   private detach: (() => void) | undefined
   private readonly listeners = new Set<SuitListener>()
   /** 用户是否已明确选过。未选过就不写盘——首装不该在设置文档里留痕。 */
@@ -85,6 +107,39 @@ export class SuitRuntime {
   /** @returns 是否处于原生态（不着色、不装饰）。 */
   get isNative(): boolean {
     return this.current === 'native'
+  }
+
+  /** @returns 当前各特性开关快照。 */
+  get flags(): SuitFlags {
+    return { ...this.currentFlags }
+  }
+
+  /** @returns 是否处于简约模式。 */
+  get isMinimalMode(): boolean {
+    return this.currentFlags.minimalMode
+  }
+
+  /** @returns 是否开启 Q 版形象防遮挡。 */
+  get isAntiOcclusion(): boolean {
+    return this.currentFlags.antiOcclusion
+  }
+
+  /**
+   * 设置简约模式开关。
+   * @param on - 是否开启。
+   * @param persist - 是否持久化。
+   */
+  setMinimalMode(on: boolean, persist = true): void {
+    this.setFlag(MINIMAL_MODE_FIELD, on, persist)
+  }
+
+  /**
+   * 设置 Q 版形象防遮挡开关。
+   * @param on - 是否开启。
+   * @param persist - 是否持久化。
+   */
+  setAntiOcclusion(on: boolean, persist = true): void {
+    this.setFlag(ANTI_OCCLUSION_FIELD, on, persist)
   }
 
   /**
@@ -146,6 +201,29 @@ export class SuitRuntime {
   }
 
   /**
+   * 读回各特性开关配置。
+   */
+  private readFlags(): Partial<SuitFlags> {
+    const snapshot = this.scope?.getSnapshot()
+    if (snapshot?.status !== 'ready') return {}
+
+    const extract = (field: FlagField): boolean | undefined => {
+      const user = snapshot.user
+      if (typeof user === 'object' && user !== null && !Array.isArray(user)) {
+        const explicit: unknown = Reflect.get(user, field)
+        if (typeof explicit === 'boolean') return explicit
+      }
+      const value = snapshot.value?.[field]
+      return typeof value === 'boolean' ? value : undefined
+    }
+
+    return {
+      minimalMode: extract(MINIMAL_MODE_FIELD),
+      antiOcclusion: extract(ANTI_OCCLUSION_FIELD),
+    }
+  }
+
+  /**
    * 读回持久偏好并挂上对应衣装；无宿主/旧值时用默认衣装。
    */
   start(): void {
@@ -156,6 +234,10 @@ export class SuitRuntime {
       this.chosen = true
       if (stored !== 'native') this.lastSuit = stored
     }
+    const flags = this.readFlags()
+    if (flags.minimalMode !== undefined) this.currentFlags.minimalMode = flags.minimalMode
+    if (flags.antiOcclusion !== undefined) this.currentFlags.antiOcclusion = flags.antiOcclusion
+
     this.mount()
     this.stopWatchingScope?.()
     this.stopWatchingScope = this.scope?.subscribe(() => this.syncFromHost())
@@ -171,6 +253,29 @@ export class SuitRuntime {
     if (this.disposed) return
     const snapshot = this.scope?.getSnapshot()
     if (snapshot?.status !== 'ready') return
+
+    const flags = this.readFlags()
+    let flagsChanged = false
+    for (const field of FLAG_FIELDS) {
+      const pending = this.pendingLocalFlags.get(field)
+      if (pending !== undefined) {
+        // 在途写入可能是更早一次点击，必须等它结算后再确认或写最新选择。
+        if (!this.pendingFlagWrites.has(field) && flags[field] === pending) {
+          this.pendingLocalFlags.delete(field)
+        } else {
+          this.writeFlagHost(field, pending)
+        }
+        continue
+      }
+      const value = flags[field]
+      if (value !== undefined && value !== this.currentFlags[field]) {
+        this.currentFlags[field] = value
+        flagsChanged = true
+      }
+    }
+    if (flagsChanged) {
+      this.notify()
+    }
 
     const explicit = this.explicitHostSuit()
     if (this.pendingLocalSuit !== undefined) {
@@ -220,7 +325,44 @@ export class SuitRuntime {
     if (persist) {
       this.write(suit)
     }
-    for (const listener of this.listeners) listener(suit)
+    this.notify()
+  }
+
+  /** 通知全部订阅者最新皮肤与开关状态。 */
+  private notify(): void {
+    for (const listener of this.listeners) listener(this.current, this.flags)
+  }
+
+  private setFlag(field: FlagField, value: boolean, persist: boolean): void {
+    const changed = this.currentFlags[field] !== value
+    this.currentFlags[field] = value
+    if (persist) {
+      this.pendingLocalFlags.set(field, value)
+      this.lastFlagWriteAttempts.delete(field)
+    }
+    if (changed) {
+      this.notify()
+    }
+    if (persist) this.writeFlagHost(field, value)
+  }
+
+  private writeFlagHost(field: FlagField, value: boolean): void {
+    const snapshot = this.scope?.getSnapshot()
+    if (this.disposed || !this.scope || snapshot?.status !== 'ready' || !snapshot.writable || this.pendingFlagWrites.has(field)) return
+    if (this.readFlags()[field] === value) {
+      this.pendingLocalFlags.delete(field)
+      return
+    }
+    const attempt = this.lastFlagWriteAttempts.get(field)
+    if (attempt?.value === value && attempt.revision === snapshot.revision) return
+    this.lastFlagWriteAttempts.set(field, { value, revision: snapshot.revision })
+    this.pendingFlagWrites.add(field)
+    void this.scope.set(field, value)
+      .catch(() => {})
+      .finally(() => {
+        this.pendingFlagWrites.delete(field)
+        this.syncFromHost()
+      })
   }
 
   /**
