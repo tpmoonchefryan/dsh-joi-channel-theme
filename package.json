@@ -1,6 +1,6 @@
 {
   "name": "dsh-joi-channel-theme",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "轴伊 Joi 双衣装主题（Joi-Flowers / Joi-Library）for DeepSeek Harness — unofficial, non-commercial fan theme plugin（0.2.0：新增仅作用于已有对话页的简约模式、可选 Q 版角色防遮挡，修复偏好恢复与保存；0.1.14：修复 macOS 桌面版底纹多层叠印并移除侧栏竖条）",
   "keywords": [
     "deepseek-harness",
