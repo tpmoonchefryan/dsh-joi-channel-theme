@@ -406,8 +406,8 @@
   "$comment": "五处 app 原生结构与主题的冲突。正式开发时会原样撞上，逐条已验证修法。",
   "1_composerZIndex": {
    "problem": "立绘横向压住 composer，盖掉模型选择器和发送键。",
-   "cause": "app 自身给 composerStack 设了 z-index:1，覆盖规则不加 !important 会被压过去。",
-   "fix": "composerStack / heroWorkspaceRow / KZiXvq_stack → position:relative!important; z-index:5!important；立绘 z-index:0。"
+   "cause": "旧版：app 给 composerStack 设了 z-index:1，覆盖规则不加 !important 会被压过去。0.2.x 起多一道闸：会话根容器 [data-phase=hero] 生成 isolation:isolate 层叠上下文，内部 composerStack 的 z-index:5 只在盒内比较，盒子整体 z-index:auto，仍输给 body 里的立绘。",
+   "fix": "composerStack / heroWorkspaceRow / <heroStack> → position:relative!important; z-index:5!important；[data-phase][class*=root] → isolation:auto!important（取消层叠上下文生成，不碰布局）；立绘 z-index:0。不用 z-index:-1 反向压立绘——会被根容器不透明底色吞掉。"
   },
   "2_logoRowClips": {
    "problem": "HARNESS 上移成第二行后整个被裁掉。",
