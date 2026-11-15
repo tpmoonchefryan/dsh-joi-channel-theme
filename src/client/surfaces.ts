@@ -12,7 +12,7 @@
 import { HALO_CLASS, ID, MINIMAL_CLASS, SELECTORS, TEX_CLASS, stylesheet } from './css.ts'
 import { OwnedNodes, framed } from './dom.ts'
 import {
-  brandSurgery, heroComposer, placeHero, trackHero, undoBrandSurgery,
+  brandSurgery, hideHero, heroComposer, placeHero, trackHero, undoBrandSurgery,
   type HeroMetrics, type HeroNodes,
 } from './hero.ts'
 import { applyHalo, placeChat, type ChatMetrics, type ChatNodes, type ChatState } from './chat.ts'
@@ -259,8 +259,8 @@ export class Surfaces {
     // 药丸 tab、composer 层序）还在生效，原生态就成了"没有装饰的错位界面"。
     // 用 sheet.disabled 而不是清空文本：元素还在，量测属性也就还在。
     if (this.stamp.sheet !== null) this.stamp.sheet.disabled = true
-    for (const el of [this.hero.portrait, this.hero.whale, this.hero.tagline,
-                      this.chat.joi, this.chat.zhouxin]) {
+    hideHero(this.hero)
+    for (const el of [this.chat.joi, this.chat.zhouxin]) {
       el.style.display = 'none'
     }
     for (const el of document.querySelectorAll(`.${TEX_CLASS}`)) el.classList.remove(TEX_CLASS)

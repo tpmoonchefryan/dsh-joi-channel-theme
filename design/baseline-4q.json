@@ -403,11 +403,11 @@
   }
  },
  "structuralConflicts": {
-  "$comment": "五处 app 原生结构与主题的冲突。正式开发时会原样撞上，逐条已验证修法。",
+  "$comment": "五处 app 原生结构与主题的冲突及当前修法基线；几何与色值以实测值为准，宿主层序按对应版本验收。",
   "1_composerZIndex": {
    "problem": "立绘横向压住 composer，盖掉模型选择器和发送键。",
-   "cause": "旧版：app 给 composerStack 设了 z-index:1，覆盖规则不加 !important 会被压过去。0.2.x 起多一道闸：会话根容器 [data-phase=hero] 生成 isolation:isolate 层叠上下文，内部 composerStack 的 z-index:5 只在盒内比较，盒子整体 z-index:auto，仍输给 body 里的立绘。",
-   "fix": "composerStack / heroWorkspaceRow / <heroStack> → position:relative!important; z-index:5!important；[data-phase][class*=root] → isolation:auto!important（取消层叠上下文生成，不碰布局）；立绘 z-index:0。不用 z-index:-1 反向压立绘——会被根容器不透明底色吞掉。"
+   "cause": "旧版：app 给 composerStack 设了 z-index:1，覆盖规则不加 !important 会被压过去。0.2.x 起 hero 会话根生成 isolation:isolate 层叠上下文，内部 composerStack 的 z-index:5 只在盒内比较；放在 body 的立绘仍会压住模型选择器与推理强度。宿主像素鲸画布依赖该隔离上下文，让 z-index:-1 画布不被不透明背景盖住。",
+   "fix": "composerStack / heroWorkspaceRow / <heroStack> → position:relative!important; z-index:5!important；保留 hero 根 isolation:isolate，并将 fixed 立绘挂入当前 hero 根，使立绘 z-index:0 与输入栈在同一上下文比较。旧宿主无 phase 根时回退到 body。立绘 pointer-events:none，保留原生鱼形热区的空白点击。不得改 isolation:auto 或用负层级压立绘。"
   },
   "2_logoRowClips": {
    "problem": "HARNESS 上移成第二行后整个被裁掉。",

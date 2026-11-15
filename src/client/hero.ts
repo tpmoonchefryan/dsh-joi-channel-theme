@@ -52,10 +52,17 @@ export function heroComposer(): Element | null {
 export function placeHero(nodes: HeroNodes, suit: Suit): HeroMetrics | undefined {
   const anchor = headlineAnchor()
   if (anchor === null) {
-    hide(nodes)
+    hideHero(nodes)
     return undefined
   }
   const { headline, tr } = anchor
+
+  // Keep the fixed portrait inside the hero root's isolated stacking context.
+  // That lets the composer stack above it while the host's negative-z whale canvas
+  // remains above the root's opaque background. Older hosts have no phase root.
+  const root = heroComposer()?.closest(SELECTORS.isolatedRoot)
+  const mount = root ?? document.body
+  if (nodes.portrait.parentElement !== mount) mount.append(nodes.portrait)
 
   for (const el of [nodes.portrait, nodes.whale, nodes.tagline]) el.style.display = 'block'
 
@@ -219,8 +226,11 @@ export interface HeroMetrics {
  * 和 Q 版角色撞在一起。
  * @param nodes - hero 节点。
  */
-function hide(nodes: HeroNodes): void {
+export function hideHero(nodes: HeroNodes): void {
   for (const el of [nodes.portrait, nodes.whale, nodes.tagline]) el.style.display = 'none'
+  // Don't leave an owned decoration inside a conversation root after navigation
+  // or when native styling is selected. Surfaces can attach it to the next hero root.
+  if (nodes.portrait.parentElement !== document.body) document.body.append(nodes.portrait)
 }
 
 /**

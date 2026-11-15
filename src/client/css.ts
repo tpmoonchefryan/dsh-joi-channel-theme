@@ -45,12 +45,12 @@ export const SELECTORS = {
   /** 输入区外层容器（满宽），新会话页会多一个 composerHero 修饰类。 */
   composerStack: '[class*=composerStack]',
   /**
-   * 会自己生成层叠上下文的会话根容器（0.2.x 起为 `isolation:isolate`）。
+   * 新版新会话的会话根容器（0.2.x 起以 `data-phase` 暴露）。
    *
    * 用 `[data-phase]` 这个未哈希语义钩子而不是类名：它是 ConversationRoot
    * 状态机（hero / active / settling）的对外属性，比 hash 稳。
-   * 只有 hero 期带 isolation，所以 selector 里不必写值，直接覆盖即可。
-   * 它的存在会让内部 composer 的 z-index 失效，见 structuralFixes ①。
+   * hero 期的 isolation 是宿主像素鲸画布的绘制边界，不能覆盖掉；fixed 立绘
+   * 在新会话页放进该根内，与 composer 在同一层叠上下文。
    */
   isolatedRoot: '[data-phase][class*=root]',
   /** 输入区里那张可见卡片（780px，水平居中）。app 自带的未哈希钩子。 */
@@ -129,25 +129,12 @@ export function stylesheet(): string {
  */
 function structuralFixes(): string {
   return `
-/* ①  composer 必须压在角色之上。角色从「从卡片后面探出来」变成「贴在卡片
-      前面」，遮挡关系就反了，深度线索也就没了；更糟的是它横跨卡片右下角，
-      会盖住模型选择器与推理强度——用户点不到、也读不出当前选的是哪个模型。
-
-      这里曾经只靠 z-index 就够：旧版 app 的 composerStack 自带 z-index:1，
-      本规则再给它 !important 的 5，而立绘住在 body 下的 z-index:0。
-
-      0.2.x 起不成立了：会话根容器（[data-phase][class*=root]）加了
-      isolation:isolate。层叠上下文一旦在这里生成，里面元素的 z-index 就只在
-      内部比较，再也赢不了外层的立绘——composerStack 的 5 变成「盒内最大」，
-      而盒子整体仍是 z-index:auto，输给 body 里排在它后面的立绘。
-
-      所以除了「抬 composer」，还得「关掉这道闸」。isolation:auto 只取消
-      层叠上下文的生成，不碰任何布局：根容器仍是 position:relative，
-      它的子层仍然各就各位；取消后 composerStack 的 5 重新对全文档生效，
-      立绘（0）重新回到它该在的下面。
-      不用 z-index:-1 反向压立绘：那会把角色塞到根容器的不透明底色之下，
-      整张立绘直接从画面上消失。 */
-${SELECTORS.isolatedRoot} { isolation: auto !important; }
+/* ① composer 必须压在立绘之上，模型选择器和推理强度也要完整可见、可点。
+      0.2.x 的 hero 根用 isolation:isolate 包住宿主像素鲸画布；保留这个上下文，
+      否则 z-index:-1 的画布会落到不透明背景后面。Surfaces 把 fixed 立绘放进
+      同一 hero 根（旧宿主无此根时仍挂 body），所以它与 composer 的 z-index
+      在同一上下文比较。立绘仍为 z-index:0，输入栈为 5。
+      立绘 pointer-events:none，空白处点击继续落到原生鲸鱼热区；不要用负层级。 */
 ${SELECTORS.composerStack},
 [class*=heroWorkspaceRow],
 ${SELECTORS.heroStack} { position: relative !important; z-index: 5 !important; }
